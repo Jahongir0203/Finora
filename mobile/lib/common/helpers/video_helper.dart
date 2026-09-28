@@ -1,0 +1,106 @@
+import 'dart:io';
+
+import 'package:finora/presentation/dialogs/select_item_dialog.dart';
+import 'package:finora/presentation/routes/app_router.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../widgets/app_video.dart';
+import '../words/words.dart';
+
+abstract final class VideoHelper {
+  static Future<void> showVideo(dynamic video) async {
+    await showDialog(
+      context: router.navigatorKey.currentContext!,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        behavior: .opaque,
+        child: Column(
+          children: [
+            const Row(
+              children: [
+                Spacer(),
+                Icon(Icons.close, color: Colors.white, size: 36),
+              ],
+            ),
+            Expanded(
+              child: Center(
+                child: AppVideo(
+                  video,
+                  width: .infinity,
+                  autoPlay: true,
+                  muted: false,
+                  showControls: true,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Future<String?> pickVideo({
+    List<ImageSource> sources = const [.camera, .gallery],
+    int? maxFileSizeBytes,
+    Duration? maxVideoDuration,
+  }) async {
+    try {
+      if (sources.isEmpty) {
+        if (kDebugMode) print('pickVideo: empty sources');
+        return null;
+      }
+
+      final ImageSource? source;
+      if (sources.length == 1) {
+        source = sources.first;
+      } else {
+        source = await SelectItemDialog<ImageSource>(
+          mode: .wrap,
+          fetchItems: () => sources,
+          labelFrom: (e) => 'select_from_${e.name}'.str,
+          itemBuilder: (e, isSelected) {
+            return Text(
+              'select_from_${e.name}'.str,
+              style: const TextStyle(fontSize: 20),
+            );
+          },
+        ).show();
+        if (source == null) return null;
+      }
+
+      final file = await ImagePicker().pickVideo(
+        source: source,
+        maxDuration: maxVideoDuration,
+      );
+      if (file == null) return null;
+
+      final originalFile = File(file.path);
+      if (!await originalFile.exists()) return null;
+
+      if (maxFileSizeBytes != null) {
+        final size = await originalFile.length();
+        if (size > maxFileSizeBytes) {
+          if (kDebugMode) {
+            print('pickVideo: file too large ($size > $maxFileSizeBytes)');
+          }
+          _safeDelete(originalFile);
+          return null;
+        }
+      }
+
+      return originalFile.path;
+    } catch (e) {
+      if (kDebugMode) print('pickVideo error: $e');
+      return null;
+    }
+  }
+
+  // ─── Private ───────────────────────────────────────────────────────────────
+  static void _safeDelete(File file) {
+    file.exists().then((exists) {
+      if (exists) file.delete().catchError((_) => file);
+    });
+  }
+}
