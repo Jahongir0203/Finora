@@ -1,0 +1,13 @@
+from typing import Protocol
+from uuid import UUID
+
+from app.domain.users.entities import User
+
+
+class UserRepository(Protocol):
+    async def get(self, user_id: UUID) -> User | None: ...
+    async def get_by_phone_index(self, phone_index: str) -> User | None: ...
+    async def add(self, user: User) -> None: ...
+    async def purge(self, user_id: UUID) -> None:
+        """Userni va unga tegishli barcha shaxsiy ma'lumotni (kaskad) o'chiradi."""
+        ...
