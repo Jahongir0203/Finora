@@ -16,7 +16,8 @@ SECURITY_HEADERS = [
     (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'"),
 ]
 
-RECEIPT_UPLOAD_PREFIX = "/v1/receipts"
+# 10 MB faqat chek yuklash endpointi uchun, qolgan hamma joyda 1 MB
+RECEIPT_UPLOAD_PATH = "/v1/receipts/scan"
 _EXEMPT_PATHS = {"/health"}
 
 
@@ -46,8 +47,8 @@ class SecurityMiddleware:
         if self.s.trust_forwarded_proto:
             proto = dict(scope["headers"]).get(b"x-forwarded-proto")
             if proto is not None:
-                return proto.split(b",")[0].strip() == b"https"
-        return scope.get("scheme") == "https"
+                return bool(proto.split(b",")[0].strip() == b"https")
+        return bool(scope.get("scheme") == "https")
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -59,7 +60,7 @@ class SecurityMiddleware:
             await _send_error(send, 403, "https_required", "Faqat HTTPS orqali")
             return
 
-        limit = (self.s.max_receipt_bytes if path.startswith(RECEIPT_UPLOAD_PREFIX)
+        limit = (self.s.max_receipt_bytes if path == RECEIPT_UPLOAD_PATH
                  else self.s.max_body_bytes)
         declared = dict(scope["headers"]).get(b"content-length")
         if declared is not None:

@@ -19,8 +19,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.db.base import Base, UTCDateTime
 
-_CASCADE = {"ondelete": "CASCADE"}
 
+def _fk(target: str) -> ForeignKey:
+    return ForeignKey(target, ondelete="CASCADE")
 
 class UserModel(Base):
     __tablename__ = "users"
@@ -36,7 +37,7 @@ class DeviceModel(Base):
     __table_args__ = (UniqueConstraint("user_id", "installation_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", **_CASCADE), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"), index=True)
     installation_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     public_key: Mapped[bytes] = mapped_column(LargeBinary)
     name: Mapped[str] = mapped_column(String(64))
@@ -49,8 +50,8 @@ class SessionModel(Base):
     __tablename__ = "sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", **_CASCADE), index=True)
-    device_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("devices.id", **_CASCADE), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"), index=True)
+    device_id: Mapped[uuid.UUID] = mapped_column(_fk("devices.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)
     revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     revoke_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
@@ -61,7 +62,7 @@ class RefreshTokenModel(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     session_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("sessions.id", **_CASCADE), index=True
+        _fk("sessions.id"), index=True
     )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)
@@ -74,7 +75,7 @@ class GoalModel(Base):
     __table_args__ = (CheckConstraint("target_amount > 0", name="target_positive"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", **_CASCADE), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"), index=True)
     name: Mapped[str] = mapped_column(String(64))
     target_amount: Mapped[int] = mapped_column(BigInteger)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)
@@ -88,8 +89,8 @@ class GoalEntryModel(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
-    goal_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("goals.id", **_CASCADE), index=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", **_CASCADE), index=True)
+    goal_id: Mapped[uuid.UUID] = mapped_column(_fk("goals.id"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"), index=True)
     kind: Mapped[str] = mapped_column(String(16))
     amount: Mapped[int] = mapped_column(BigInteger)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)
@@ -104,7 +105,7 @@ class TransactionModel(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", **_CASCADE))
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"))
     kind: Mapped[str] = mapped_column(String(16))
     amount: Mapped[int] = mapped_column(BigInteger)
     category: Mapped[str] = mapped_column(String(64))
@@ -117,7 +118,7 @@ class ExportModel(Base):
     __tablename__ = "exports"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", **_CASCADE), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"), index=True)
     file_key: Mapped[str] = mapped_column(String(255))
     download_token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)
@@ -125,11 +126,39 @@ class ExportModel(Base):
     downloaded_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
 
+class ReceiptModel(Base):
+    __tablename__ = "receipts"
+    __table_args__ = (CheckConstraint("size_bytes > 0", name="size_positive"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"), index=True)
+    file_key: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(32))
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class ReminderModel(Base):
+    __tablename__ = "reminders"
+    __table_args__ = (
+        CheckConstraint("amount IS NULL OR amount > 0", name="amount_positive"),
+        CheckConstraint("repeat IN ('none', 'daily', 'weekly', 'monthly')", name="repeat_valid"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(64))
+    amount: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    due_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    repeat: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
 class IdempotencyKeyModel(Base):
     __tablename__ = "idempotency_keys"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", **_CASCADE), primary_key=True
+        _fk("users.id"), primary_key=True
     )
     key: Mapped[str] = mapped_column(String(128), primary_key=True)
     fingerprint: Mapped[str] = mapped_column(String(64))
@@ -138,7 +167,7 @@ class IdempotencyKeyModel(Base):
 
 
 class AuditLogModel(Base):
-    """Append-only. Ilova roli faqat INSERT huquqiga ega (deploy/db/roles.sql).
+    """Append-only. Ilova roli faqat INSERT huquqiga ega (deploy/db/post_migrate.sql).
     user_id'da FK yo'q — akkaunt o'chirilgandan keyin ham audit 1 yil saqlanadi."""
 
     __tablename__ = "audit_log"

@@ -63,4 +63,5 @@ async def device_proof(
 
 
 DeviceProofDep = Annotated[DeviceProof, Depends(device_proof)]
+TokenIssuerDep = Annotated[TokenIssuer, Depends(token_issuer)]
 IdempotencyKey = Annotated[str | None, Header(alias="Idempotency-Key")]

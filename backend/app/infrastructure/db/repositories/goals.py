@@ -18,7 +18,9 @@ class SqlGoalRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._s = session
 
-    async def get_for_user(self, user_id: UUID, goal_id: UUID, *, lock: bool = False) -> Goal | None:
+    async def get_for_user(
+        self, user_id: UUID, goal_id: UUID, *, lock: bool = False
+    ) -> Goal | None:
         stmt = select(GoalModel).where(GoalModel.id == goal_id, GoalModel.user_id == user_id)
         if lock:
             stmt = stmt.with_for_update()
@@ -34,6 +36,7 @@ class SqlGoalRepository:
     async def add(self, goal: Goal) -> None:
         self._s.add(GoalModel(id=goal.id, user_id=goal.user_id, name=goal.name,
                               target_amount=goal.target_amount, created_at=goal.created_at))
+        await self._s.flush()
 
     async def update(self, goal: Goal) -> None:
         await self._s.execute(

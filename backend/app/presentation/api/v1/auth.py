@@ -1,7 +1,7 @@
 import base64
 import binascii
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Request, status
 
 from app.application.auth.dto import (
     PinFailuresCommand,
@@ -11,14 +11,13 @@ from app.application.auth.dto import (
 )
 from app.application.auth.otp import RequestOtp, VerifyOtp
 from app.application.auth.sessions import Logout, LogoutAll, RefreshTokens, ReportPinFailures
-from app.application.auth.tokens import TokenIssuer
 from app.domain.common.errors import ValidationFailedError
 from app.presentation.api.deps import (
     AuthDep,
     ContainerDep,
     DeviceProofDep,
+    TokenIssuerDep,
     client_ip,
-    token_issuer,
 )
 from app.presentation.schemas.auth import (
     OtpRequestIn,
@@ -52,7 +51,7 @@ async def request_otp(body: OtpRequestIn, request: Request, c: ContainerDep) -> 
 
 @router.post("/verify", response_model=VerifyOut)
 async def verify_otp(body: OtpVerifyIn, request: Request, c: ContainerDep,
-                     tokens: TokenIssuer = Depends(token_issuer)) -> VerifyOut:
+                     tokens: TokenIssuerDep) -> VerifyOut:
     result = await VerifyOtp(
         c.uow(), c.kv, c.limiter, c.hasher, c.cipher, c.key_verifier, tokens,
         c.notifier, c.clock, c.settings,
@@ -69,7 +68,7 @@ async def verify_otp(body: OtpVerifyIn, request: Request, c: ContainerDep,
 
 @router.post("/refresh", response_model=TokenOut)
 async def refresh(body: RefreshIn, proof: DeviceProofDep, c: ContainerDep,
-                  tokens: TokenIssuer = Depends(token_issuer)) -> TokenOut:
+                  tokens: TokenIssuerDep) -> TokenOut:
     pair = await RefreshTokens(
         c.uow(), c.hasher, c.key_verifier, tokens, c.limiter, c.notifier, c.clock, c.settings,
     ).execute(RefreshCommand(refresh_token=body.refresh_token, proof=proof))

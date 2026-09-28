@@ -21,7 +21,9 @@ class SessionRepository(Protocol):
     async def revoke_for_device(
         self, user_id: UUID, device_id: UUID, reason: RevokeReason, at: datetime
     ) -> int: ...
-    async def revoke_all_for_user(self, user_id: UUID, reason: RevokeReason, at: datetime) -> int: ...
+    async def revoke_all_for_user(
+        self, user_id: UUID, reason: RevokeReason, at: datetime
+    ) -> int: ...
 
 
 class RefreshTokenRepository(Protocol):

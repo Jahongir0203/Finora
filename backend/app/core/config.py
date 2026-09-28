@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     blind_index_key: SecretStr = SecretStr("dev-blind-index-key-change-me-000")
     field_encryption_key: SecretStr = SecretStr("ZGV2LWZpZWxkLWtleS0zMi1ieXRlcy1sb25nLSEhISE=")
     refresh_token_pepper: SecretStr = SecretStr("dev-refresh-pepper-change-me-0000")
+    # Chek rasmlari uchun imzolangan URL kaliti (02-backend.md, 6-bo'lim)
+    url_signing_key: SecretStr = SecretStr("dev-url-signing-key-change-me-000")
 
     # --- 01-umumiy.md, 2-bo'lim: parametrlar jadvali ---
     otp_length: int = 6
@@ -58,6 +60,21 @@ class Settings(BaseSettings):
 
     max_body_bytes: int = 1 * 1024 * 1024
     max_receipt_bytes: int = 10 * 1024 * 1024
+    # Decompression bomb himoyasi: 10 MB fayl ichida ham 40 MP'dan katta rasm rad etiladi
+    max_image_pixels: int = 40_000_000
+    receipt_url_ttl_seconds: int = 5 * 60
+    receipts_per_hour: int = 30
+    # ClamAV (clamd) — prod'da majburiy. Bo'sh bo'lsa dev'da skan o'tkazib yuboriladi
+    clamav_host: str | None = None
+    clamav_port: int = 3310
+
+    ai_per_hour: int = 20
+    ai_per_day: int = 100
+    ai_question_max_length: int = 300
+    ai_window_days: int = 30
+
+    # security.txt (RFC 9116) uchun aloqa, masalan "mailto:security@finora.uz"
+    security_contact: str | None = None
 
     enforce_https: bool = True
     # So'rov X-Forwarded-Proto'siga ishonish (faqat ishonchli proxy/gateway ortida)
@@ -76,6 +93,7 @@ class Settings(BaseSettings):
                     "blind_index_key",
                     "field_encryption_key",
                     "refresh_token_pepper",
+                    "url_signing_key",
                 )
                 if "dev-" in getattr(self, name).get_secret_value()
                 or getattr(self, name).get_secret_value()
@@ -89,6 +107,8 @@ class Settings(BaseSettings):
                 raise ValueError("Prod muhitida Swagger o'chirilgan bo'lishi kerak")
             if not self.enforce_https:
                 raise ValueError("Prod muhitida HTTPS majburiy")
+            if not self.clamav_host:
+                raise ValueError("Prod muhitida FINORA_CLAMAV_HOST majburiy (chek antivirus skani)")
         return self
 
 

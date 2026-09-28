@@ -11,12 +11,14 @@ from app.core.logging import request_id_ctx
 from app.domain.common.errors import (
     AuthenticationError,
     DomainError,
+    FileRejectedError,
     IdempotencyConflictError,
     IdempotencyKeyRequiredError,
     InsufficientFundsError,
     InvalidOtpError,
     NotFoundError,
     RateLimitedError,
+    UnsupportedMediaError,
     ValidationFailedError,
 )
 
@@ -31,6 +33,8 @@ _STATUS: list[tuple[type[DomainError], int]] = [
     (InvalidOtpError, 400),
     (IdempotencyKeyRequiredError, 400),
     (IdempotencyConflictError, 409),
+    (UnsupportedMediaError, 415),
+    (FileRejectedError, 422),
 ]
 
 _HTTP_CODES = {

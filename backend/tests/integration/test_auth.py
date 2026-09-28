@@ -177,6 +177,6 @@ async def test_rejects_forged_hs256_and_none_tokens(client):
     import jwt as pyjwt
 
     forged = pyjwt.encode({"sub": "x", "sid": "y", "did": "z", "exp": 9999999999,
-                           "iss": "finora"}, "secret", algorithm="HS256")
+                           "iss": "finora"}, "s" * 32, algorithm="HS256")
     r = await client.get("/v1/goals", headers={"Authorization": f"Bearer {forged}"})
     assert r.status_code == 401

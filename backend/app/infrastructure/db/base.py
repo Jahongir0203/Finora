@@ -35,4 +35,5 @@ class UTCDateTime(TypeDecorator[datetime]):
     def process_result_value(self, value: Any, dialect: Dialect) -> datetime | None:
         if value is None:
             return None
+        assert isinstance(value, datetime)
         return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)

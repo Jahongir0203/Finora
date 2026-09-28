@@ -50,6 +50,7 @@ class SqlDeviceRepository:
             public_key=device.public_key, name=device.name, platform=device.platform.value,
             created_at=device.created_at, last_seen_at=device.last_seen_at,
         ))
+        await self._s.flush()
 
     async def update(self, device: Device) -> None:
         await self._s.execute(
@@ -71,6 +72,7 @@ class SqlSessionRepository:
     async def add(self, session: Session) -> None:
         self._s.add(SessionModel(id=session.id, user_id=session.user_id,
                                  device_id=session.device_id, created_at=session.created_at))
+        await self._s.flush()
 
     async def list_active_for_user(self, user_id: UUID) -> list[Session]:
         rows = await self._s.scalars(
@@ -116,6 +118,7 @@ class SqlRefreshTokenRepository:
         self._s.add(RefreshTokenModel(id=token.id, session_id=token.session_id,
                                       token_hash=token.token_hash, created_at=token.created_at,
                                       expires_at=token.expires_at))
+        await self._s.flush()
 
     async def mark_used(self, token_id: UUID, at: datetime) -> bool:
         result = await self._s.execute(

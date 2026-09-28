@@ -10,7 +10,9 @@ from app.infrastructure.db.models import (
     GoalEntryModel,
     GoalModel,
     IdempotencyKeyModel,
+    ReceiptModel,
     RefreshTokenModel,
+    ReminderModel,
     SessionModel,
     TransactionModel,
     UserModel,
@@ -37,6 +39,8 @@ class SqlUserRepository:
     async def add(self, user: User) -> None:
         self._s.add(UserModel(id=user.id, phone_ciphertext=user.phone_ciphertext,
                               phone_index=user.phone_index, created_at=user.created_at))
+        # SQLAlchemy 2.1 relationship'siz FK tartibini kafolatlamaydi — ota qatorni darhol yozamiz
+        await self._s.flush()
 
     async def purge(self, user_id: UUID) -> None:
         # ON DELETE CASCADE bor, lekin DB'dan qat'i nazar aniq tartibda o'chiramiz
@@ -45,6 +49,6 @@ class SqlUserRepository:
             delete(RefreshTokenModel).where(RefreshTokenModel.session_id.in_(session_ids))
         )
         for model in (SessionModel, DeviceModel, GoalEntryModel, GoalModel, TransactionModel,
-                      ExportModel, IdempotencyKeyModel):
+                      ExportModel, ReceiptModel, ReminderModel, IdempotencyKeyModel):
             await self._s.execute(delete(model).where(model.user_id == user_id))
         await self._s.execute(delete(UserModel).where(UserModel.id == user_id))

@@ -10,6 +10,8 @@ from app.domain.auth.repository import (
 )
 from app.domain.exports.repository import ExportRepository
 from app.domain.goals.repository import GoalRepository
+from app.domain.receipts.repository import ReceiptRepository
+from app.domain.reminders.repository import ReminderRepository
 from app.domain.transactions.repository import TransactionRepository
 from app.domain.users.repository import UserRepository
 
@@ -22,6 +24,8 @@ class UnitOfWork(Protocol):
     goals: GoalRepository
     transactions: TransactionRepository
     exports: ExportRepository
+    receipts: ReceiptRepository
+    reminders: ReminderRepository
     audit: AuditRepository
     idempotency: IdempotencyRepository
 

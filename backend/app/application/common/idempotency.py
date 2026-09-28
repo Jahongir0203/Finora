@@ -33,7 +33,7 @@ class IdempotencyRecord:
     created_at: datetime
 
 
-class IdempotencyConflict(Exception):  # noqa: N818 — infratuzilma signali
+class IdempotencyConflict(Exception):
     """Parallel so'rov shu kalitni birinchi bo'lib yozdi (unique constraint)."""
 
 

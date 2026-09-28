@@ -14,15 +14,19 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 from app.container import Container
 from app.core.config import Settings
+from app.infrastructure.ai.local import RuleBasedInsightsModel
 from app.infrastructure.cache.memory import InMemoryKeyValueStore
 from app.infrastructure.clock import SystemClock
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.session import create_engine, create_session_factory
+from app.infrastructure.files.antivirus import NoopScanner
+from app.infrastructure.files.images import PillowImageSanitizer
 from app.infrastructure.notifications.log_notifier import LogNotifier
 from app.infrastructure.security.cipher import AesGcmPhoneCipher
 from app.infrastructure.security.device_keys import EcdsaP256Verifier
 from app.infrastructure.security.hashing import HmacHasher
 from app.infrastructure.security.jwt_tokens import Es256AccessTokenService
+from app.infrastructure.security.url_signer import HmacUrlSigner
 from app.infrastructure.sms.console import InMemorySmsSender
 from app.infrastructure.storage.local import LocalFileStorage
 from app.main import create_app
@@ -57,6 +61,10 @@ async def container(settings: Settings) -> AsyncIterator[Container]:
         sms=InMemorySmsSender(),
         notifier=LogNotifier(),
         storage=LocalFileStorage(settings.storage_dir),
+        scanner=NoopScanner(settings),
+        sanitizer=PillowImageSanitizer(settings.max_image_pixels),
+        signer=HmacUrlSigner(settings),
+        insights=RuleBasedInsightsModel(),
     )
     yield c
     await engine.dispose()
@@ -125,6 +133,9 @@ async def login(client: httpx.AsyncClient, container: Container, phone: str,
         "device_name": "Test phone", "platform": "ios", **extra,
     })
     assert r.status_code == 200, r.text
+    # Keyingi login shu raqam bilan 60 s qayta yuborish limitiga tushmasin — vaqtni "suramiz"
+    if isinstance(container.kv, InMemoryKeyValueStore):
+        container.kv.time_offset += container.settings.otp_resend_seconds + 1
     body = r.json()
     return LoggedIn(body["access_token"], body["refresh_token"], device, phone)
 

@@ -81,7 +81,9 @@ class RequestOtp:
             Limit("hour", s.otp_per_hour, HOUR),
             Limit("day", s.otp_per_day, DAY),
         ]
-        await self._limiter.hit_many("otp", [f"p:{idx}", f"d:{cmd.installation_id}"], subject_limits)
+        await self._limiter.hit_many(
+            "otp", [f"p:{idx}", f"d:{cmd.installation_id}"], subject_limits
+        )
         try:
             await self._limiter.hit(
                 "otp",

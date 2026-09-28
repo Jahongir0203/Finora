@@ -24,6 +24,7 @@ class SqlExportRepository:
             download_token_hash=export.download_token_hash, created_at=export.created_at,
             expires_at=export.expires_at,
         ))
+        await self._s.flush()
 
     async def get_by_token_hash(self, token_hash: str) -> Export | None:
         m = await self._s.scalar(

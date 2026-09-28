@@ -30,7 +30,6 @@ from app.domain.common.errors import (
     NotFoundError,
     TokenReuseDetectedError,
 )
-from app.domain.common.ids import uuid7
 
 logger = logging.getLogger("finora.auth")
 
@@ -208,7 +207,10 @@ class SignOutDevice:
 
 
 class ReportPinFailures(_SessionLookup):
-    """Mijoz 5 xato PIN haqida xabar beradi — so'rov qurilma kaliti bilan imzolangan bo'lishi shart."""
+    """Mijoz 5 xato PIN haqida xabar beradi.
+
+    So'rov qurilma kaliti bilan imzolangan bo'lishi shart.
+    """
 
     def __init__(
         self,

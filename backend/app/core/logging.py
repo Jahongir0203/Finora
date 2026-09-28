@@ -27,6 +27,8 @@ _SENSITIVE_KEYS = {
     "signature",
     "receipt_text",
     "public_key",
+    "question",
+    "answer",
 }
 
 

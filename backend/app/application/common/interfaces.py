@@ -72,7 +72,9 @@ class SmsSender(Protocol):
 class Notifier(Protocol):
     """Push va ilova ichidagi bildirishnomalar."""
 
-    async def new_sign_in(self, user_id: UUID, exclude_device_id: UUID, device_name: str) -> None: ...
+    async def new_sign_in(
+        self, user_id: UUID, exclude_device_id: UUID, device_name: str
+    ) -> None: ...
     async def sessions_revoked(self, user_id: UUID, reason: str) -> None: ...
 
 
@@ -82,3 +84,35 @@ class FileStorage(Protocol):
     async def put(self, key: str, data: bytes, content_type: str) -> None: ...
     async def get(self, key: str) -> bytes | None: ...
     async def delete(self, key: str) -> None: ...
+
+
+class MalwareScanner(Protocol):
+    async def is_clean(self, data: bytes) -> bool:
+        """Antivirus skani. Skaner ishlamasa istisno ko'taradi (fail-closed)."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class SanitizedImage:
+    data: bytes
+    content_type: str
+
+
+class ImageSanitizer(Protocol):
+    def sanitize(self, data: bytes, expected_format: str) -> SanitizedImage:
+        """Rasmni qayta kodlaydi: EXIF/GPS va boshqa metadata olib tashlanadi.
+        Buzilgan yoki haddan katta rasm — FileRejectedError."""
+        ...
+
+
+class UrlSigner(Protocol):
+    """Qisqa muddatli imzolangan havolalar (prod'da S3 presigned URL bilan almashtiriladi)."""
+
+    def sign(self, resource: str, expires_at: int) -> str: ...
+    def verify(self, resource: str, expires_at: int, signature: str, now: int) -> bool: ...
+
+
+class InsightsModel(Protocol):
+    """AI provayderi. Faqat matn qaytaradi — tool call'lar ishlatilmaydi."""
+
+    async def complete(self, system: str, prompt: str) -> str: ...

@@ -9,23 +9,31 @@ from app.application.common.interfaces import (
     Clock,
     DeviceKeyVerifier,
     FileStorage,
+    ImageSanitizer,
+    InsightsModel,
     KeyValueStore,
+    MalwareScanner,
     Notifier,
     PhoneCipher,
     SecretHasher,
     SmsSender,
+    UrlSigner,
 )
 from app.application.common.rate_limit import RateLimiter
 from app.core.config import Environment, Settings
+from app.infrastructure.ai.local import RuleBasedInsightsModel
 from app.infrastructure.cache.memory import InMemoryKeyValueStore
 from app.infrastructure.clock import SystemClock
 from app.infrastructure.db.session import create_engine, create_session_factory
 from app.infrastructure.db.uow import SqlAlchemyUnitOfWork
+from app.infrastructure.files.antivirus import ClamAvScanner, NoopScanner
+from app.infrastructure.files.images import PillowImageSanitizer
 from app.infrastructure.notifications.log_notifier import LogNotifier
 from app.infrastructure.security.cipher import AesGcmPhoneCipher
 from app.infrastructure.security.device_keys import EcdsaP256Verifier
 from app.infrastructure.security.hashing import HmacHasher
 from app.infrastructure.security.jwt_tokens import Es256AccessTokenService
+from app.infrastructure.security.url_signer import HmacUrlSigner
 from app.infrastructure.sms.console import ConsoleSmsSender
 from app.infrastructure.storage.local import LocalFileStorage
 
@@ -44,6 +52,10 @@ class Container:
     sms: SmsSender
     notifier: Notifier
     storage: FileStorage
+    scanner: MalwareScanner
+    sanitizer: ImageSanitizer
+    signer: UrlSigner
+    insights: InsightsModel
     limiter: RateLimiter = field(init=False)
 
     def __post_init__(self) -> None:
@@ -65,6 +77,12 @@ def _build_kv(settings: Settings) -> KeyValueStore:
     return InMemoryKeyValueStore()
 
 
+def _build_scanner(settings: Settings) -> MalwareScanner:
+    if settings.clamav_host:
+        return ClamAvScanner(settings.clamav_host, settings.clamav_port)
+    return NoopScanner(settings)
+
+
 def build_container(settings: Settings) -> Container:
     engine = create_engine(settings)
     return Container(
@@ -81,4 +99,9 @@ def build_container(settings: Settings) -> Container:
         sms=ConsoleSmsSender(settings),
         notifier=LogNotifier(),
         storage=LocalFileStorage(settings.storage_dir),
+        scanner=_build_scanner(settings),
+        sanitizer=PillowImageSanitizer(settings.max_image_pixels),
+        signer=HmacUrlSigner(settings),
+        # TODO: tashqi LLM — faqat "o'qitishda ishlatmaslik" shartnomasidan keyin (8-bo'lim)
+        insights=RuleBasedInsightsModel(),
     )

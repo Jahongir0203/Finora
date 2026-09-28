@@ -65,7 +65,8 @@ class GoalService:
             async def action() -> dict[str, Any]:
                 goal = Goal(uuid7(), ctx.user_id, name, target_amount, self._clock.now())
                 await uow.goals.add(goal)
-                return GoalView(goal.id, goal.name, goal.target_amount, 0, goal.created_at).to_dict()
+                view = GoalView(goal.id, goal.name, goal.target_amount, 0, goal.created_at)
+                return view.to_dict()
 
             return await run_idempotent(
                 uow, user_id=ctx.user_id, key=idempotency_key, operation="goal.create",

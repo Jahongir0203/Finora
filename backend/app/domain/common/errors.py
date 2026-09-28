@@ -61,6 +61,18 @@ class TokenReuseDetectedError(AuthenticationError):
     message = "Sessiya bekor qilindi. Qayta kiring"
 
 
+class UnsupportedMediaError(DomainError):
+    code = "unsupported_media_type"
+    message = "Faqat JPEG, PNG yoki HEIC rasm qabul qilinadi"
+
+
+class FileRejectedError(DomainError):
+    """Antivirus yoki rasm tekshiruvidan o'tmagan fayl. Sabab mijozga aytilmaydi."""
+
+    code = "file_rejected"
+    message = "Fayl qabul qilinmadi"
+
+
 class IdempotencyKeyRequiredError(DomainError):
     code = "idempotency_key_required"
     message = "Idempotency-Key sarlavhasi majburiy"

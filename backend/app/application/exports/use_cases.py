@@ -66,7 +66,7 @@ class ExportService:
                              expires_at=now + timedelta(seconds=self._s.export_ttl_seconds))
 
     async def download(self, token: str) -> bytes:
-        """Havola egasi autentifikatsiyasiz yuklay oladi, lekin faqat bir marta va 24 soat ichida."""
+        """Havola egasi autentifikatsiyasiz yuklay oladi — faqat bir marta va 24 soat ichida."""
         now = self._clock.now()
         async with self._uow as uow:
             export = await uow.exports.get_by_token_hash(self._hasher.token_hash(token))

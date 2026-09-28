@@ -12,7 +12,7 @@ class ConsoleSmsSender:
             raise RuntimeError("ConsoleSmsSender prod'da taqiqlangan")
 
     async def send(self, phone: PhoneNumber, text: str) -> None:
-        print(f"[DEV SMS → {phone.masked()}] {text}", file=sys.stderr)  # noqa: T201
+        print(f"[DEV SMS → {phone.masked()}] {text}", file=sys.stderr)
 
 
 class InMemorySmsSender:

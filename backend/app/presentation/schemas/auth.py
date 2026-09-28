@@ -36,7 +36,7 @@ class RefreshIn(StrictModel):
 class TokenOut(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "Bearer"
+    token_type: str = "Bearer"  # noqa: S105 — OAuth2 token turi, secret emas
     expires_in: int
 
 
