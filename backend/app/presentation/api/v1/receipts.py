@@ -38,10 +38,13 @@ async def get_receipt(receipt_id: UUID, ctx: AuthDep, c: ContainerDep) -> dict[s
 async def receipt_url(receipt_id: UUID, ctx: AuthDep, c: ContainerDep,
                       request: Request) -> SignedUrlOut:
     signed = await _svc(c).sign_url(ctx, receipt_id)
+    expires_at = datetime.fromtimestamp(signed.expires_at, UTC)
+    if signed.direct_url is not None:
+        return SignedUrlOut(url=signed.direct_url, expires_at=expires_at)
     url = request.url_for("receipt_image", receipt_id=str(signed.receipt_id)).include_query_params(
         exp=signed.expires_at, sig=signed.signature
     )
-    return SignedUrlOut(url=str(url), expires_at=datetime.fromtimestamp(signed.expires_at, UTC))
+    return SignedUrlOut(url=str(url), expires_at=expires_at)
 
 
 @router.get("/{receipt_id}/image", name="receipt_image", include_in_schema=False)

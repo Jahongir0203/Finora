@@ -34,3 +34,6 @@ class LocalFileStorage:
 
     async def delete(self, key: str) -> None:
         await asyncio.to_thread(self._path(key).unlink, missing_ok=True)
+
+    async def presigned_get_url(self, key: str, ttl_seconds: int) -> str | None:
+        return None  # lokal omborda HMAC-imzoli API endpoint ishlatiladi

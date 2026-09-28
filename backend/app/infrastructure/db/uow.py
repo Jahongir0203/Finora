@@ -10,8 +10,10 @@ from app.domain.auth.repository import (
     RefreshTokenRepository,
     SessionRepository,
 )
+from app.domain.budgets.repository import BudgetRepository
 from app.domain.exports.repository import ExportRepository
 from app.domain.goals.repository import GoalRepository
+from app.domain.notifications.repository import NotificationRepository, PushTokenRepository
 from app.domain.receipts.repository import ReceiptRepository
 from app.domain.reminders.repository import ReminderRepository
 from app.domain.transactions.repository import TransactionRepository
@@ -22,9 +24,14 @@ from app.infrastructure.db.repositories.auth import (
     SqlRefreshTokenRepository,
     SqlSessionRepository,
 )
+from app.infrastructure.db.repositories.budgets import SqlBudgetRepository
 from app.infrastructure.db.repositories.exports import SqlExportRepository
 from app.infrastructure.db.repositories.goals import SqlGoalRepository
 from app.infrastructure.db.repositories.idempotency import SqlIdempotencyRepository
+from app.infrastructure.db.repositories.notifications import (
+    SqlNotificationRepository,
+    SqlPushTokenRepository,
+)
 from app.infrastructure.db.repositories.receipts import SqlReceiptRepository
 from app.infrastructure.db.repositories.reminders import SqlReminderRepository
 from app.infrastructure.db.repositories.transactions import SqlTransactionRepository
@@ -45,6 +52,9 @@ class SqlAlchemyUnitOfWork:
     exports: ExportRepository
     receipts: ReceiptRepository
     reminders: ReminderRepository
+    budgets: BudgetRepository
+    notifications: NotificationRepository
+    push_tokens: PushTokenRepository
     audit: AuditRepository
     idempotency: IdempotencyRepository
 
@@ -64,6 +74,9 @@ class SqlAlchemyUnitOfWork:
         self.exports = SqlExportRepository(s)
         self.receipts = SqlReceiptRepository(s)
         self.reminders = SqlReminderRepository(s)
+        self.budgets = SqlBudgetRepository(s)
+        self.notifications = SqlNotificationRepository(s)
+        self.push_tokens = SqlPushTokenRepository(s)
         self.audit = SqlAuditRepository(s)
         self.idempotency = SqlIdempotencyRepository(s)
         return self

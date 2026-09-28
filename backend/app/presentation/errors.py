@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.logging import request_id_ctx
 from app.domain.common.errors import (
     AuthenticationError,
+    ConflictError,
     DomainError,
     FileRejectedError,
     IdempotencyConflictError,
@@ -18,6 +19,7 @@ from app.domain.common.errors import (
     InvalidOtpError,
     NotFoundError,
     RateLimitedError,
+    ServiceUnavailableError,
     UnsupportedMediaError,
     ValidationFailedError,
 )
@@ -34,6 +36,8 @@ _STATUS: list[tuple[type[DomainError], int]] = [
     (IdempotencyKeyRequiredError, 400),
     (IdempotencyConflictError, 409),
     (UnsupportedMediaError, 415),
+    (ConflictError, 409),
+    (ServiceUnavailableError, 503),
     (FileRejectedError, 422),
 ]
 

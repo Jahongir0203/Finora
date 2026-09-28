@@ -1,13 +1,18 @@
+import hmac
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, Response
 from fastapi.responses import PlainTextResponse
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.container import Container, build_container
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
+from app.core.metrics import REGISTRY
+from app.domain.common.errors import AuthenticationError
 from app.presentation.api.router import api_router
 from app.presentation.errors import register_error_handlers
 from app.presentation.middleware.request_id import RequestIdMiddleware
@@ -22,7 +27,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
-        await container.engine.dispose()
+        await container.aclose()
 
     app = FastAPI(
         title=settings.app_name,
@@ -38,6 +43,16 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     @app.get("/health", include_in_schema=False)
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    if settings.metrics_token is not None:
+        metrics_token = settings.metrics_token.get_secret_value().encode()
+
+        @app.get("/metrics", include_in_schema=False)
+        async def metrics(authorization: Annotated[str | None, Header()] = None) -> Response:
+            given = (authorization or "").removeprefix("Bearer ").encode()
+            if not hmac.compare_digest(given, metrics_token):
+                raise AuthenticationError()
+            return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
     if settings.security_contact:
         contact = settings.security_contact

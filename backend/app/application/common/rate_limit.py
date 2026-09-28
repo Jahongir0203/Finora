@@ -4,6 +4,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from app.application.common.interfaces import KeyValueStore
+from app.core.metrics import rate_limited
 from app.domain.common.errors import RateLimitedError
 
 MINUTE = 60
@@ -28,6 +29,7 @@ class RateLimiter:
             key = f"rl:{scope}:{limit.name}:{subject}"
             count, ttl = await self._store.incr(key, limit.window_seconds)
             if count > limit.max_hits:
+                rate_limited.labels(scope=scope).inc()
                 raise RateLimitedError(retry_after=ttl or limit.window_seconds)
 
     async def hit_many(self, scope: str, subjects: Iterable[str], limits: list[Limit]) -> None:

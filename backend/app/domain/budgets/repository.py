@@ -1,0 +1,16 @@
+from typing import Protocol
+from uuid import UUID
+
+from app.domain.budgets.entities import Budget
+
+
+class BudgetRepository(Protocol):
+    """Barcha metodlar user_id talab qiladi — egalik repository darajasida."""
+
+    async def add(self, budget: Budget) -> None:
+        """Shu kategoriyaga byudjet bo'lsa — ConflictError."""
+        ...
+    async def get_for_user(self, user_id: UUID, budget_id: UUID) -> Budget | None: ...
+    async def list_for_user(self, user_id: UUID) -> list[Budget]: ...
+    async def update(self, budget: Budget) -> None: ...
+    async def delete_for_user(self, user_id: UUID, budget_id: UUID) -> bool: ...

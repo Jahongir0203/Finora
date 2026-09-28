@@ -41,7 +41,7 @@ async def _main(command: str) -> None:
         if command == "purge":
             await purge(container)
     finally:
-        await container.engine.dispose()
+        await container.aclose()
 
 
 if __name__ == "__main__":

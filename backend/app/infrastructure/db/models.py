@@ -44,6 +44,9 @@ class DeviceModel(Base):
     platform: Mapped[str] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)
     last_seen_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    # Push token faqat shu qurilmaga yuborish uchun; loglanmaydi, API'da qaytarilmaydi
+    push_provider: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    push_token: Mapped[str | None] = mapped_column(String(512), nullable=True, index=True)
 
 
 class SessionModel(Base):
@@ -152,6 +155,33 @@ class ReminderModel(Base):
     due_at: Mapped[datetime] = mapped_column(UTCDateTime)
     repeat: Mapped[str] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class BudgetModel(Base):
+    __tablename__ = "budgets"
+    __table_args__ = (
+        UniqueConstraint("user_id", "category"),
+        CheckConstraint("monthly_limit > 0", name="limit_positive"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"), index=True)
+    category: Mapped[str] = mapped_column(String(64))
+    monthly_limit: Mapped[int] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class NotificationModel(Base):
+    __tablename__ = "notifications"
+    __table_args__ = (Index("ix_notifications_user_created", "user_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(_fk("users.id"))
+    kind: Mapped[str] = mapped_column(String(32))
+    title: Mapped[str] = mapped_column(String(128))
+    body: Mapped[str] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
 
 class IdempotencyKeyModel(Base):

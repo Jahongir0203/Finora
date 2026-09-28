@@ -4,6 +4,7 @@ import secrets
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.logging import request_id_ctx
+from app.core.metrics import http_responses
 
 _VALID = re.compile(r"^[A-Za-z0-9\-]{8,64}$")
 
@@ -22,6 +23,7 @@ class RequestIdMiddleware:
 
         async def send_with_id(message: Message) -> None:
             if message["type"] == "http.response.start":
+                http_responses.labels(status=str(message["status"])).inc()
                 message.setdefault("headers", []).append((b"x-request-id", rid.encode()))
             await send(message)
 

@@ -18,7 +18,9 @@ SECURITY_HEADERS = [
 
 # 10 MB faqat chek yuklash endpointi uchun, qolgan hamma joyda 1 MB
 RECEIPT_UPLOAD_PATH = "/v1/receipts/scan"
-_EXEMPT_PATHS = {"/health"}
+# Klaster ichidan (pod'ga to'g'ridan-to'g'ri) HTTP orqali so'raladi; gateway bu yo'llarni
+# tashqariga chiqarmaydi. /metrics qo'shimcha ravishda Bearer token bilan himoyalangan
+_EXEMPT_PATHS = {"/health", "/metrics"}
 
 
 async def _send_error(send: Send, status: int, code: str, message: str) -> None:

@@ -8,8 +8,10 @@ from app.domain.auth.repository import (
     RefreshTokenRepository,
     SessionRepository,
 )
+from app.domain.budgets.repository import BudgetRepository
 from app.domain.exports.repository import ExportRepository
 from app.domain.goals.repository import GoalRepository
+from app.domain.notifications.repository import NotificationRepository, PushTokenRepository
 from app.domain.receipts.repository import ReceiptRepository
 from app.domain.reminders.repository import ReminderRepository
 from app.domain.transactions.repository import TransactionRepository
@@ -26,6 +28,9 @@ class UnitOfWork(Protocol):
     exports: ExportRepository
     receipts: ReceiptRepository
     reminders: ReminderRepository
+    budgets: BudgetRepository
+    notifications: NotificationRepository
+    push_tokens: PushTokenRepository
     audit: AuditRepository
     idempotency: IdempotencyRepository
 

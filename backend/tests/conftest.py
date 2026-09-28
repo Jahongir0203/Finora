@@ -12,6 +12,8 @@ import pytest
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
+from app.application.common.interfaces import PushSendResult
+from app.application.notifications.notifier import AppNotifier
 from app.container import Container
 from app.core.config import Settings
 from app.infrastructure.ai.local import RuleBasedInsightsModel
@@ -19,9 +21,9 @@ from app.infrastructure.cache.memory import InMemoryKeyValueStore
 from app.infrastructure.clock import SystemClock
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.session import create_engine, create_session_factory
+from app.infrastructure.db.uow import SqlAlchemyUnitOfWork
 from app.infrastructure.files.antivirus import NoopScanner
 from app.infrastructure.files.images import PillowImageSanitizer
-from app.infrastructure.notifications.log_notifier import LogNotifier
 from app.infrastructure.security.cipher import AesGcmPhoneCipher
 from app.infrastructure.security.device_keys import EcdsaP256Verifier
 from app.infrastructure.security.hashing import HmacHasher
@@ -43,28 +45,46 @@ def settings(tmp_path: Path) -> Settings:
     )
 
 
+class FakePush:
+    """Push provayderi o'rnida: yuborilganlarni yig'adi, `invalid` tokenlar uchun 410 beradi."""
+
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, str, str]] = []
+        self.invalid: set[str] = set()
+
+    async def send(self, provider, token: str, title: str, body: str) -> PushSendResult:
+        if token in self.invalid:
+            return PushSendResult.INVALID_TOKEN
+        self.sent.append((token, title, body))
+        return PushSendResult.OK
+
+
 @pytest.fixture
 async def container(settings: Settings) -> AsyncIterator[Container]:
     engine = create_engine(settings)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    session_factory = create_session_factory(engine)
+    clock = SystemClock()
+    push = FakePush()
     c = Container(
         settings=settings,
         engine=engine,
-        session_factory=create_session_factory(engine),
+        session_factory=session_factory,
         kv=InMemoryKeyValueStore(),
-        clock=SystemClock(),
+        clock=clock,
         hasher=HmacHasher(settings),
         cipher=AesGcmPhoneCipher(settings),
         access_tokens=Es256AccessTokenService(settings),
         key_verifier=EcdsaP256Verifier(),
         sms=InMemorySmsSender(),
-        notifier=LogNotifier(),
+        notifier=AppNotifier(lambda: SqlAlchemyUnitOfWork(session_factory), push, clock),
         storage=LocalFileStorage(settings.storage_dir),
         scanner=NoopScanner(settings),
         sanitizer=PillowImageSanitizer(settings.max_image_pixels),
         signer=HmacUrlSigner(settings),
         insights=RuleBasedInsightsModel(),
+        push=push,
     )
     yield c
     await engine.dispose()

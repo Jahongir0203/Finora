@@ -2,10 +2,12 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
 
 from app.domain.common.values import PhoneNumber
+from app.domain.notifications.entities import PushProvider
 
 
 class Clock(Protocol):
@@ -84,6 +86,9 @@ class FileStorage(Protocol):
     async def put(self, key: str, data: bytes, content_type: str) -> None: ...
     async def get(self, key: str) -> bytes | None: ...
     async def delete(self, key: str) -> None: ...
+    async def presigned_get_url(self, key: str, ttl_seconds: int) -> str | None:
+        """Ombor o'zi imzolangan URL bera olsa (S3) — URL, aks holda None (HMAC endpoint)."""
+        ...
 
 
 class MalwareScanner(Protocol):
@@ -116,3 +121,15 @@ class InsightsModel(Protocol):
     """AI provayderi. Faqat matn qaytaradi — tool call'lar ishlatilmaydi."""
 
     async def complete(self, system: str, prompt: str) -> str: ...
+
+
+class PushSendResult(StrEnum):
+    OK = "ok"
+    # Ilova o'chirilgan / token eskirgan — bazadan olinadi
+    INVALID_TOKEN = "invalid_token"  # noqa: S105 — holat nomi, secret emas
+    FAILED = "failed"
+
+
+class PushSender(Protocol):
+    async def send(self, provider: PushProvider, token: str, title: str,
+                   body: str) -> PushSendResult: ...

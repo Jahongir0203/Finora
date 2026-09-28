@@ -5,11 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.users.entities import User
 from app.infrastructure.db.models import (
+    BudgetModel,
     DeviceModel,
     ExportModel,
     GoalEntryModel,
     GoalModel,
     IdempotencyKeyModel,
+    NotificationModel,
     ReceiptModel,
     RefreshTokenModel,
     ReminderModel,
@@ -49,6 +51,7 @@ class SqlUserRepository:
             delete(RefreshTokenModel).where(RefreshTokenModel.session_id.in_(session_ids))
         )
         for model in (SessionModel, DeviceModel, GoalEntryModel, GoalModel, TransactionModel,
-                      ExportModel, ReceiptModel, ReminderModel, IdempotencyKeyModel):
+                      ExportModel, ReceiptModel, ReminderModel, NotificationModel, BudgetModel,
+                      IdempotencyKeyModel):
             await self._s.execute(delete(model).where(model.user_id == user_id))
         await self._s.execute(delete(UserModel).where(UserModel.id == user_id))

@@ -6,6 +6,55 @@ Katta ishlar uchun batafsil hujjat alohida fayl sifatida shu papkaga yoziladi va
 
 ---
 
+## 2026-09-28 — Eskiz SMS, push + in-app bildirishnomalar, S3, monitoring, byudjet
+
+Batafsil: [2026-09-28-integratsiyalar-va-monitoring.md](./2026-09-28-integratsiyalar-va-monitoring.md)
+
+**Nima qilindi va nega**
+
+- **Eskiz.uz SMS adapteri.** Prod'da `console` SMS taqiqlangan edi, lekin real adapter yo'q edi.
+  Token keshlanadi, 401'da qayta login qilinadi. Xatolar 503 bo'lib qaytadi, OTP va SMS matni loglanmaydi.
+- **Push (FCM HTTP v1, APNs) + ilova ichidagi bildirishnomalar.** TZ 2: yangi kirish va refresh
+  reuse haqida push va in-app bildirishnoma MUST, oldin faqat log yozilardi. Yangi endpointlar:
+  `PUT/DELETE /v1/me/push-token`, `GET /v1/me/notifications`, `POST …/{id}/read`.
+- **S3-mos yopiq ombor.** SSE-KMS/AES256, presigned GET URL (5 daq, SigV4), O'zbekistondagi provayder uchun `endpoint_url`.
+- **Prometheus metrikalar + `deploy/monitoring/alerts.yml`.** TZ 9: OTP xatolari keskin oshishi,
+  refresh reuse va IP flood uchun alertlar. `/metrics` Bearer token bilan himoyalangan.
+- **Byudjetlar** (`/v1/budgets`). `spent` serverda, Toshkent vaqti bo'yicha oy chegarasi bilan hisoblanadi.
+- Prod guard'lar: prod'da real SMS, push provayderi va S3 bucket majburiy.
+
+**Muhim qarorlar**
+
+- *Push matni umumiy, qurilma nomi faqat in-app'da:* push qulflangan ekranda ko'rinadi.
+- *Push token bitta qurilma yozuvida:* telefonda boshqa akkauntga kirilsa, token eski akkauntdan
+  olinadi. Aks holda bildirishnoma begona odamga borardi.
+- *Push xatosi login'ni yiqitmaydi* (5 s timeout). *SMS xatosi resend limitini qaytarmaydi*, aks
+  holda bu limitni aylanib o'tish yo'li bo'lardi.
+- *Metrikalar log handler orqali sanaladi*, label'lar oq ro'yxatdan olinadi: PII yo'q, loglar bilan metrikalar ajralib qolmaydi.
+- *Oy chegarasi qat'iy UTC+5 bilan:* O'zbekistonda yozgi vaqt yo'q, `tzdata`ga bog'liqlik kerak emas.
+- `LogNotifier` o'chirildi (endi ishlatilmaydi).
+
+**O'zgargan / yangi fayllar**
+
+- Yangi: `app/infrastructure/sms/eskiz.py`, `app/infrastructure/push/{fcm,apns,router}.py`,
+  `app/infrastructure/storage/s3.py`, `app/application/notifications/{notifier,use_cases}.py`,
+  `app/domain/notifications/`, `app/{domain,application}/budgets/`, `app/core/metrics.py`,
+  `app/infrastructure/db/repositories/{notifications,budgets}.py`,
+  `app/presentation/api/v1/budgets.py`, `app/presentation/schemas/{notifications,budgets}.py`,
+  `deploy/monitoring/alerts.yml`, `migrations/versions/20260928_5a24b90a75ad_…py`
+- O'zgargan: `app/container.py`, `app/core/{config,logging}.py`, `app/main.py`, `app/jobs.py`,
+  `app/application/common/{interfaces,rate_limit,uow}.py`, `app/application/receipts/use_cases.py`,
+  `app/infrastructure/db/{models,uow}.py`, `app/infrastructure/storage/local.py`,
+  `app/presentation/api/v1/{me,receipts}.py`, `app/presentation/middleware/{security,request_id}.py`,
+  `app/presentation/errors.py`, `app/domain/common/errors.py`, `.env.example`, `pyproject.toml`, `uv.lock`
+- O'chirilgan: `app/infrastructure/notifications/log_notifier.py`
+- Testlar: 56 → 77 (`test_adapters`, `test_notifications`, `test_metrics`, `test_budgets`)
+
+**Bajarilmagan:** LLM (shartnoma kerak), Postgres'da SQL tekshiruvi (lokal Postgres yo'q), branch
+protection (GitHub sozlamasi), OCR (provayder va ma'lumot hududi qarori). Sabablari batafsil hujjatda.
+
+---
+
 ## 2026-09-28 — Xavfsizlik TZ bo'yicha davom: cheklar, AI, eslatmalar, migratsiyalar, CI
 
 Batafsil: [2026-09-28-xavfsizlik-tz-davomi.md](./2026-09-28-xavfsizlik-tz-davomi.md)

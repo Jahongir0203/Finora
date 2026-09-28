@@ -1,0 +1,73 @@
+# Prometheus alert qoidalari (02-backend.md, 9-bo'lim):
+#   "OTP xatolari keskin oshsa, refresh reuse bo'lsa, bitta IP'dan ko'p raqam kelsa".
+# Metrikalar: GET /metrics (Bearer FINORA_METRICS_TOKEN), app/core/metrics.py.
+# Eslatma: har konteynerda bitta uvicorn worker (masshtab — replika soni bilan),
+# aks holda prometheus_client multiprocess rejimi kerak bo'ladi.
+groups:
+  - name: finora-security
+    rules:
+      - alert: FinoraOtpFailureSpike
+        # Oxirgi 10 daqiqadagi xato kodlar ulushi va soni birdan oshdi — brute-force belgisi
+        expr: |
+          sum(increase(finora_security_events_total{event="otp_invalid"}[10m])) > 50
+          and
+          sum(increase(finora_security_events_total{event="otp_invalid"}[10m]))
+            > 3 * sum(increase(finora_security_events_total{event="otp_invalid"}[1h] offset 1d)) / 6 + 20
+        for: 5m
+        labels: {severity: critical, team: backend}
+        annotations:
+          summary: "OTP xato urinishlari keskin oshdi"
+          runbook: "Audit log va loglarda request_id bo'yicha manbani toping; kerak bo'lsa WAF'da IP blok."
+
+      - alert: FinoraOtpBlocks
+        expr: sum(increase(finora_security_events_total{event="otp_blocked"}[15m])) > 10
+        labels: {severity: warning, team: backend}
+        annotations:
+          summary: "Ko'p raqam 5 xato urinishdan keyin bloklandi"
+
+      - alert: FinoraOtpIpFlood
+        # Bitta IP'dan ko'p raqamga SMS so'ralgan (IP limiti ishga tushgan)
+        expr: sum(increase(finora_security_events_total{event="otp_ip_limit_exceeded"}[10m])) > 0
+        labels: {severity: warning, team: backend}
+        annotations:
+          summary: "Bitta IP'dan ko'p telefon raqamiga OTP so'ralmoqda (SMS bombing?)"
+
+      - alert: FinoraRefreshTokenReuse
+        expr: sum(increase(finora_security_events_total{event="refresh_token_reuse"}[5m])) > 0
+        labels: {severity: warning, team: backend}
+        annotations:
+          summary: "Refresh token qayta ishlatildi — o'g'irlangan token ehtimoli, oila bekor qilindi"
+
+      - alert: FinoraRefreshTokenReuseMass
+        expr: sum(increase(finora_security_events_total{event="refresh_token_reuse"}[15m])) > 10
+        labels: {severity: critical, team: backend}
+        annotations:
+          summary: "Ommaviy refresh reuse — token bazasi sizgan bo'lishi mumkin. Hodisa rejasini boshlang"
+
+      - alert: FinoraMalwareUpload
+        expr: sum(increase(finora_security_events_total{event="receipt_malware_detected"}[15m])) > 0
+        labels: {severity: warning, team: backend}
+        annotations:
+          summary: "Chek yuklashda zararli fayl aniqlandi"
+
+      - alert: FinoraSmsProviderFailing
+        expr: |
+          sum(increase(finora_security_events_total{event=~"sms_send_failed|sms_transport_error|sms_auth_failed"}[5m])) > 5
+        labels: {severity: critical, team: backend}
+        annotations:
+          summary: "SMS provayderi xato bermoqda — foydalanuvchilar kira olmaydi"
+
+      - alert: FinoraHigh5xx
+        expr: |
+          sum(rate(finora_http_responses_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(finora_http_responses_total[5m])), 1) > 0.02
+        for: 5m
+        labels: {severity: critical, team: backend}
+        annotations:
+          summary: "5xx ulushi 2% dan oshdi"
+
+      - alert: FinoraRateLimitSurge
+        expr: sum by (scope) (increase(finora_rate_limited_total[10m])) > 200
+        labels: {severity: warning, team: backend}
+        annotations:
+          summary: "{{ $labels.scope }} bo'yicha 429 keskin oshdi — suiiste'mol yoki mijoz xatosi"

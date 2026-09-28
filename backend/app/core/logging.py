@@ -10,6 +10,8 @@ import re
 from contextvars import ContextVar
 from typing import Any
 
+from app.core.metrics import SecurityEventCounter
+
 request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 _PHONE_RE = re.compile(r"\+?998[\s-]?(\d{2})[\s-]?\d{3}[\s-]?\d{2}[\s-]?(\d{2})")
@@ -82,7 +84,7 @@ def configure_logging(level: str = "INFO") -> None:
     handler = logging.StreamHandler()
     handler.setFormatter(JsonFormatter())
     root = logging.getLogger()
-    root.handlers[:] = [handler]
+    root.handlers[:] = [handler, SecurityEventCounter()]
     root.setLevel(level)
     # uvicorn access log so'rov query-stringini yozadi — o'chiramiz, o'zimizniki bor
     logging.getLogger("uvicorn.access").disabled = True

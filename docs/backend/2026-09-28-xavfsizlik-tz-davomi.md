@@ -336,6 +336,9 @@ Buyruqlar: `uv run pytest -q`, `uv run ruff check .`, `uv run mypy app`,
 
 ## 11. Keyingi qadamlar (ochiq ishlar)
 
+> **Yangilanish:** 1, 2, 3, 7 va 8 (byudjet) bandlari keyingi bosqichda bajarildi:
+> [2026-09-28-integratsiyalar-va-monitoring.md](./2026-09-28-integratsiyalar-va-monitoring.md)
+
 1. **Real SMS provayderi** (Eskiz / Playmobile) — `SmsSender` porti. Prod'da `ConsoleSmsSender` ishga tushmaydi.
 2. **Push** (FCM/APNs) — `Notifier` porti ("New sign-in" bildirishnomasi uchun MUST).
 3. **S3-mos yopiq ombor** (SSE-KMS) + presigned URL — `FileStorage` va `UrlSigner` portlari.

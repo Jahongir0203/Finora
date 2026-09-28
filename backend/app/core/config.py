@@ -13,6 +13,11 @@ class Environment(StrEnum):
     PROD = "prod"
 
 
+class SmsProvider(StrEnum):
+    CONSOLE = "console"  # faqat dev
+    ESKIZ = "eskiz"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="FINORA_", extra="ignore")
 
@@ -22,6 +27,22 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://finora_app:finora@localhost:5432/finora"
     redis_url: str | None = "redis://localhost:6379/0"
+
+    # --- SMS (Eskiz.uz). Matn shabloni Eskiz kabinetida oldindan tasdiqlangan bo'lishi kerak
+    sms_provider: SmsProvider = SmsProvider.CONSOLE
+    eskiz_base_url: str = "https://notify.eskiz.uz/api"
+    eskiz_email: str | None = None
+    eskiz_password: SecretStr | None = None
+    eskiz_sender: str = "4546"
+    sms_timeout_seconds: float = 10.0
+
+    # --- Push. Kamida bittasi prod'da majburiy ("New sign-in" bildirishnomasi, 2-bo'lim)
+    fcm_service_account_json: SecretStr | None = None
+    apns_team_id: str | None = None
+    apns_key_id: str | None = None
+    apns_private_key: SecretStr | None = None
+    apns_bundle_id: str | None = None
+    apns_sandbox: bool = False
 
     # --- Kriptografiya kalitlari (prod'da KMS/Vault'dan) ---
     # ES256 private key (PEM). Dev/test'da bo'sh bo'lsa vaqtinchalik kalit yaratiladi.
@@ -80,8 +101,21 @@ class Settings(BaseSettings):
     # So'rov X-Forwarded-Proto'siga ishonish (faqat ishonchli proxy/gateway ortida)
     trust_forwarded_proto: bool = True
     storage_dir: str = "var/storage"
+    # S3-mos yopiq bucket. Berilsa lokal disk o'rniga ishlatiladi (prod'da majburiy)
+    s3_bucket: str | None = None
+    s3_endpoint_url: str | None = None
+    s3_region: str | None = None
+    s3_kms_key_id: str | None = None
+
+    # /metrics uchun Bearer token (Prometheus scrape). Bo'sh bo'lsa endpoint o'chiq
+    metrics_token: SecretStr | None = None
 
     docs_enabled: bool = Field(default=False, description="Swagger faqat dev'da")
+
+    @property
+    def apns_configured(self) -> bool:
+        return bool(self.apns_team_id and self.apns_key_id and self.apns_private_key
+                    and self.apns_bundle_id)
 
     @model_validator(mode="after")
     def _prod_guards(self) -> "Settings":
@@ -107,6 +141,12 @@ class Settings(BaseSettings):
                 raise ValueError("Prod muhitida Swagger o'chirilgan bo'lishi kerak")
             if not self.enforce_https:
                 raise ValueError("Prod muhitida HTTPS majburiy")
+            if self.sms_provider is SmsProvider.CONSOLE:
+                raise ValueError("Prod muhitida real SMS provayderi majburiy (FINORA_SMS_PROVIDER)")
+            if not self.fcm_service_account_json and not self.apns_configured:
+                raise ValueError("Prod muhitida push provayderi (FCM yoki APNs) majburiy")
+            if not self.s3_bucket:
+                raise ValueError("Prod muhitida FINORA_S3_BUCKET majburiy (lokal disk emas)")
             if not self.clamav_host:
                 raise ValueError("Prod muhitida FINORA_CLAMAV_HOST majburiy (chek antivirus skani)")
         return self

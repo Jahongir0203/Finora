@@ -61,6 +61,18 @@ class TokenReuseDetectedError(AuthenticationError):
     message = "Sessiya bekor qilindi. Qayta kiring"
 
 
+class ServiceUnavailableError(DomainError):
+    """Tashqi xizmat (SMS provayderi va h.k.) ishlamayapti. Tafsilot mijozga aytilmaydi."""
+
+    code = "service_unavailable"
+    message = "Xizmat vaqtincha ishlamayapti. Keyinroq urinib ko'ring"
+
+
+class ConflictError(DomainError):
+    code = "conflict"
+    message = "Bunday yozuv allaqachon mavjud"
+
+
 class UnsupportedMediaError(DomainError):
     code = "unsupported_media_type"
     message = "Faqat JPEG, PNG yoki HEIC rasm qabul qilinadi"

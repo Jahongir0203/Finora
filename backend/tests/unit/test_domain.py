@@ -44,3 +44,21 @@ def test_phone_masking():
     assert mask_phone("+998901234567") == "+998 90 *** ** 67"
     assert scrub({"refresh_token": "abc", "note": "call +998901234567"}) == {
         "refresh_token": "[redacted]", "note": "call +998 90 *** ** 67"}
+
+
+def test_prod_requires_real_providers():
+    from pydantic import ValidationError
+
+    from app.core.config import Settings
+
+    base = {
+        "env": "prod", "jwt_private_key": "pem", "otp_hmac_key": "k1" * 16,
+        "blind_index_key": "k2" * 16, "field_encryption_key": "k3" * 16,
+        "refresh_token_pepper": "k4" * 16, "url_signing_key": "k5" * 16,
+    }
+    with pytest.raises(ValidationError, match="SMS"):
+        Settings(**base)
+    with pytest.raises(ValidationError, match="push"):
+        Settings(**base, sms_provider="eskiz")
+    with pytest.raises(ValidationError, match="S3"):
+        Settings(**base, sms_provider="eskiz", fcm_service_account_json="{}")

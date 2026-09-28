@@ -8,7 +8,6 @@ import hashlib
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -48,7 +47,9 @@ def receipt_to_dict(r: Receipt) -> dict[str, Any]:
 class SignedReceiptUrl:
     receipt_id: UUID
     expires_at: int
-    signature: str
+    # Ombor (S3) presigned URL bergan bo'lsa — shu; aks holda API endpoint uchun HMAC imzo
+    direct_url: str | None = None
+    signature: str | None = None
 
 
 class ReceiptService:
@@ -121,7 +122,12 @@ class ReceiptService:
 
     async def sign_url(self, ctx: AuthContext, receipt_id: UUID) -> SignedReceiptUrl:
         receipt = await self.get(ctx, receipt_id)
-        expires_at = int(self._clock.now().timestamp()) + self._s.receipt_url_ttl_seconds
+        ttl = self._s.receipt_url_ttl_seconds
+        expires_at = int(self._clock.now().timestamp()) + ttl
+        direct = await self._storage.presigned_get_url(receipt.file_key, ttl)
+        if direct is not None:
+            return SignedReceiptUrl(receipt_id=receipt.id, expires_at=expires_at,
+                                    direct_url=direct)
         return SignedReceiptUrl(
             receipt_id=receipt.id, expires_at=expires_at,
             signature=self._signer.sign(receipt_resource(receipt.id), expires_at),
@@ -149,7 +155,3 @@ class ReceiptService:
                 raise NotFoundError()
             await uow.commit()
         await self._storage.delete(receipt.file_key)
-
-
-def expires_at_to_datetime(ts: int, clock: Clock) -> datetime:
-    return datetime.fromtimestamp(ts, tz=clock.now().tzinfo)
