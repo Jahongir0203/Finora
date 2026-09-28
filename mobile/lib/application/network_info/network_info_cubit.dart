@@ -44,7 +44,7 @@ class NetworkInfoCubit extends Cubit<NetworkInfoState> {
       gravity: ToastGravity.TOP,
       toastLength: Toast.LENGTH_SHORT,
       backgroundColor: colors.divider,
-      textColor: isConnected ? colors.success : colors.error,
+      textColor: isConnected ? colors.success : colors.danger,
       fontSize: 16.0,
     );
   }

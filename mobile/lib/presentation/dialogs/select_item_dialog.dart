@@ -175,7 +175,7 @@ class _SelectItemDialogState<T> extends State<SelectItemDialog<T>> {
                           style: TextStyle(
                             color: isSelected
                                 ? colors.primary
-                                : colors.onSurface,
+                                : colors.textPrimary,
                           ),
                         ),
                       ),
@@ -226,7 +226,11 @@ class _ErrorView extends StatelessWidget {
         crossAxisAlignment: .center,
         mainAxisAlignment: .center,
         children: [
-          Icon(CupertinoIcons.xmark_circle_fill, color: colors.error, size: 40),
+          Icon(
+            CupertinoIcons.xmark_circle_fill,
+            color: colors.danger,
+            size: 40,
+          ),
           Padding(
             padding: const .symmetric(horizontal: 20),
             child: Text(
@@ -251,7 +255,7 @@ class _ErrorView extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: .w500,
-                  color: colors.onSurface,
+                  color: colors.textPrimary,
                 ),
               ),
             ),

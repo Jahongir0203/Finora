@@ -9,7 +9,9 @@ part of 'app_icons.dart';
 abstract class AppIcons {
   const AppIcons._();
 
-  static const list = <String>[];
+  static final google = SvgPicture.asset('assets/icons/google.svg');
+
+  static const list = <String>['assets/icons/google.svg'];
 }
 
 extension ExtensionAppIcons on SvgPicture {
@@ -18,6 +20,7 @@ extension ExtensionAppIcons on SvgPicture {
     double? height,
     BoxFit? fit,
     ColorFilter? colorFilter,
+    AlignmentGeometry? alignment,
   }) {
     return SvgPicture.asset(
       path,
@@ -25,6 +28,7 @@ extension ExtensionAppIcons on SvgPicture {
       height: height ?? this.height,
       fit: fit ?? this.fit,
       colorFilter: colorFilter ?? this.colorFilter,
+      alignment: alignment ?? this.alignment,
     );
   }
 

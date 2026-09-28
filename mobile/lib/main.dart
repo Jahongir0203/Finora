@@ -23,7 +23,11 @@ void main() {
       runApp(
         App(
           localesPath: 'assets/tr',
-          supportedLocales: const [Locale('uz', 'UZ'), Locale('ru', 'RU')],
+          supportedLocales: const [
+            Locale('en', 'US'),
+            Locale('uz', 'UZ'),
+            Locale('ru', 'RU'),
+          ],
           builder: (locales) => MultiBlocProvider(
             providers: [
               BlocProvider(create: (_) => di<ThemeCubit>()..init()),

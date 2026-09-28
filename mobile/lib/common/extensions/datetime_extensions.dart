@@ -24,3 +24,28 @@ extension DateTimeParsingExtension on String {
     return DateTime(date.year, date.month, date.day);
   }
 }
+
+/// Display formats from docs/DESIGN_SYSTEM.md §11. UI language is English.
+extension DateTimeDisplayExtension on DateTime {
+  /// `Today`, `Yesterday`, `28 Sep`, or `28 Sep 2025` for other years.
+  String get relativeDay {
+    final now = DateTime.now();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final date = DateTime.utc(year, month, day);
+    final diff = today.difference(date).inDays;
+
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (year == now.year) return DateFormat('d MMM', 'en').format(this);
+    return DateFormat('d MMM y', 'en').format(this);
+  }
+
+  /// 24h time: `14:20`.
+  String get time24 => DateFormat('HH:mm', 'en').format(this);
+
+  /// `Today, 14:20`.
+  String get relativeDayTime => '$relativeDay, $time24';
+
+  /// `Dec 2027`.
+  String get monthYear => DateFormat('MMM y', 'en').format(this);
+}
