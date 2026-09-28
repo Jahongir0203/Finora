@@ -1,0 +1,69 @@
+import 'package:auto_route/annotations.dart';
+import 'package:finora/application/device_info/device_info_cubit.dart';
+import 'package:finora/common/widgets/app_images.dart';
+import 'package:finora/common/words/words.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:widget_and_text_animator/widget_and_text_animator.dart';
+
+@RoutePage()
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
+
+  @override
+  State<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends State<SplashPage> {
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Container(
+      width: double.infinity,
+      height: double.infinity,
+      alignment: .bottomCenter,
+      padding: const .only(left: 16, right: 16, bottom: kToolbarHeight),
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage(AppImages.splash.path),
+          fit: .cover,
+        ),
+      ),
+      child: BlocBuilder<DeviceInfoCubit, DeviceInfoState>(
+        buildWhen: (old, e) => old.projectInfo != e.projectInfo,
+        builder: (context, state) => Column(
+          spacing: 12,
+          mainAxisSize: .min,
+          children: [
+            const Spacer(flex: 3),
+
+            // App name
+            Expanded(
+              flex: 2,
+              child: Center(
+                child: TextAnimator(
+                  key: UniqueKey(),
+                  state.projectInfo.appName,
+                  textAlign: .center,
+                  atRestEffect: WidgetRestingEffects.wave(),
+                  style: const TextStyle(
+                    fontSize: 56,
+                    fontWeight: .w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+
+            const CupertinoActivityIndicator(color: Colors.white),
+
+            Text(
+              '${Words.appVersion.str}: ${state.projectInfo.version}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

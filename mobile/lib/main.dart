@@ -1,0 +1,75 @@
+import 'dart:async';
+
+import 'package:finora/presentation/routes/app_router.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+
+import 'application/device_info/device_info_cubit.dart';
+import 'application/network_info/network_info_cubit.dart';
+import 'application/theme/theme_cubit.dart';
+import 'common/theme/themes.dart';
+import 'common/widgets/app.dart';
+import 'di.dart';
+
+void main() {
+  runZonedGuarded(
+    () async {
+      await setupConfigs();
+      await setupDI();
+
+      runApp(
+        App(
+          localesPath: 'assets/tr',
+          supportedLocales: const [Locale('uz', 'UZ'), Locale('ru', 'RU')],
+          builder: (locales) => MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => di<ThemeCubit>()..init()),
+              BlocProvider(create: (_) => di<DeviceInfoCubit>()..projectInfo()),
+              BlocProvider(
+                lazy: false,
+                create: (_) => di<NetworkInfoCubit>()..init(),
+              ),
+            ],
+            child: const MyApp(),
+          ),
+        ),
+      );
+    },
+    (error, stack) {
+      if (kDebugMode) {
+        print(error);
+        print(stack);
+      }
+      // if you need crashlytics
+      // FirebaseCrashlytics.instance.recordError(error, stack);
+    },
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: context.read<DeviceInfoCubit>().state.projectInfo.appName,
+      debugShowCheckedModeBanner: false,
+      routerConfig: router.config(),
+      builder: (context, child) => GestureDetector(
+        // hide keyboard
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: EasyLoading.init()(context, child),
+      ),
+      theme: AppTheme.theme(.light),
+      darkTheme: AppTheme.theme(.dark),
+      themeMode: context.watch<ThemeCubit>().state.themeMode,
+      supportedLocales: context.supportedLocales,
+      localizationsDelegates: context.localizationDelegates,
+      locale: context.locale,
+    );
+  }
+}
