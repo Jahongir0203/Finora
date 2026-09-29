@@ -6,6 +6,80 @@ Katta ishlar uchun batafsil hujjat alohida fayl sifatida shu papkaga yoziladi va
 
 ---
 
+## 2026-09-29 — Backend_task.md: hisoblar, kategoriyalar, Home, statistika, eksport, insights, sync
+
+Batafsil (har bir BE-task holati, qarorlar, mobil uchun API o'zgarishlari):
+[2026-09-29-backend-tasklar.md](./2026-09-29-backend-tasklar.md) ·
+xato kodlari: [ERROR_CODES.md](./ERROR_CODES.md) · API: [openapi.json](./openapi.json)
+
+**Nima qilindi va nega**
+
+- **Hisoblar va kartalar** (BE-1401..1404): `accounts` jadvali, faqat `last4`/`expiry`
+  (to'liq raqam qabul qilinmaydi), freeze (`422 account_frozen`), o'tkazmalar (2 bog'langan yozuv),
+  boshlang'ich balans `POST /v1/onboarding/balance` (BE-204).
+- **Kategoriyalar va byudjetlar** (BE-1501, BE-1001): 10 tizim kategoriyasi (kodda, lokalizatsiya
+  bilan) + user kategoriyalari; limit kategoriyada; `GET /v1/budgets` status bilan. Eski `/budgets`
+  CRUD olib tashlandi.
+- **Tranzaksiyalar v2** (BE-501..505): hisob, `category_id` (turga moslik), `title`, `source`,
+  chek, soft delete, PATCH, qidiruv (title/note/kategoriya nomi), cursor pagination, kunlik `groups`.
+  Hisob-kitob servisi `Ledger` + Redis kesh.
+- **Home** (BE-301), **statistika** (BE-801), **offline sync** (BE-302).
+- **Bildirishnomalar** (BE-401..404): 6 tur, `deep_link`, read-all/clear, generatorlar
+  (payment_due, budget 75/100%, weekly, goal milestone, security), push outbox + qayta urinish,
+  `notifications_enabled`.
+- **Eksport** (BE-601/602): preview, asinxron PDF/XLSX/CSV, fayl nomlari, imzolangan bir martalik havola.
+- **Cheklar** (BE-701..703): OCR va fiskal QR portlari, QR parser, kategoriya taxmini,
+  tasdiqlanmagan cheklarni 24 soatda tozalash.
+- **AI** (BE-901..903): 4 qoidaga asoslangan detektor, amallar/dismiss, savol-javob 3 oy
+  konteksti bilan, injection filtri, 15 s timeout, suggestions.
+- **Goals v2** (BE-1101..1105), **eslatmalar v2** (BE-1201..1203), **profil/sozlamalar/qurilmalar**
+  (BE-1301..1304, 201..205), **valyuta** CBU (BE-1602), **FAQ/aloqa/chat sessiyasi** (BE-1701/1702).
+- **Lokalizatsiya** (BE-1601): 6 til, xato xabarlari ham. **Xato kodlari lug'ati** (BE-1801).
+- **Auth**: `device_id`, `user` obyekti, `attempts_left`, `otp_expired`, `session_expired` /
+  `token_expired`, `purpose: pin_reset`, PlayMobile zaxira SMS, attestation porti.
+- **Xavfsizlik (oldingi auditdan)**: telefon kalitini almashtirish (`jobs reencrypt-phones`),
+  bitta IP'dan ko'p turli raqam alerti, audit retention job'i.
+- **Infra**: `/ready`, latency metrikasi, yangi alertlar, `app.seed`, `app.openapi` (+ CI
+  tekshiruvi), k6 yuklama skripti, Dockerfile'da PDF shrifti, `roles.sql`da `pg_trgm`.
+
+**Muhim qarorlar** (sabablari batafsil hujjatda): idempotency DB'da (Redis emas); balans
+saqlanmaydi — hisoblanadi; goal deposit hisobdan chiqadi; tizim kategoriyasi id — slug;
+OCR/Soliq ulanmaganda `503` (422 emas); push navbati `notifications` jadvalining o'zi; tranzaksiyali
+hisob o'chirilmaydi — arxivlanadi.
+
+**O'zgargan / yangi fayllar** (asosiylari)
+
+- Yangi domen: `app/domain/{accounts,categories,insights,help,currencies}/`, `app/domain/common/time.py`
+- Yangi application: `app/application/{accounts,categories,finance,home,stats,profile,sync,
+  currencies,help}/`, `app/application/insights/detectors.py`, `app/application/notifications/
+  {triggers,weekly}.py`, `app/application/receipts/parsing.py`, `app/application/exports/report.py`,
+  `app/application/common/pagination.py`
+- Yangi infra: `app/infrastructure/db/repositories/{accounts,categories,insights,help,currencies}.py`,
+  `app/infrastructure/{reports,rates,geo}/`, `app/infrastructure/sms/{playmobile,fallback}.py`
+- Yangi API: `app/presentation/api/v1/{home,onboarding,accounts,categories,devices,notifications,
+  stats,insights,sync,currencies,help}.py`, `app/presentation/api/factories.py`,
+  `app/presentation/middleware/locale.py`, `app/presentation/schemas/{accounts,categories,home,
+  profile,stats,exports,misc}.py`
+- Yangi: `app/core/i18n.py`, `app/seed.py`, `app/openapi.py`, `loadtest/home_activity_stats.js`,
+  `migrations/versions/20260929_b7c1e4d2a9f0_…py`
+- Qayta yozilgan: tranzaksiyalar, goals, eslatmalar, bildirishnomalar, eksport, cheklar, insights,
+  auth (otp), `app/jobs.py`, `app/infrastructure/db/models.py`, `app/container.py`,
+  `app/presentation/errors.py`
+- O'chirilgan: `app/{domain,application}/budgets/`, `…/repositories/budgets.py`,
+  `…/api/v1/budgets.py`, `…/schemas/budgets.py`
+- Deploy/CI: `Dockerfile`, `deploy/db/roles.sql`, `deploy/monitoring/alerts.yml`,
+  `.github/workflows/backend.yml`, `.env.example`, `alembic.ini`, `pyproject.toml`
+  (fpdf2, openpyxl, tzdata; dev: types-openpyxl), `uv.lock`
+- Testlar: 77 → 138 (yangi: `test_home_accounts`, `test_activity_stats`,
+  `test_categories_budgets`, `test_goals_insights_exports`, `test_migrations`, `test_i18n`)
+
+**Tekshirilmagan / ochiq:** Postgres'da migratsiya (lokal PG yo'q), OCR va Soliq API
+provayderlari, LLM, bank integratsiyasi, live chat provayderi, geo-baza, attestation verifier,
+yuklama testi, kk/tr tarjimalarini tekshirish, admin panel. Eslatma: 2026-09-28 xavfsizlik
+hujjatidagi holat jadvali eskirgan — joriy holat yangi hujjatda.
+
+---
+
 ## 2026-09-28 — Eskiz SMS, push + in-app bildirishnomalar, S3, monitoring, byudjet
 
 Batafsil: [2026-09-28-integratsiyalar-va-monitoring.md](./2026-09-28-integratsiyalar-va-monitoring.md)

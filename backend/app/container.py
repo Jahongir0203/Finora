@@ -6,23 +6,31 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.application.common.interfaces import (
     AccessTokenService,
+    AttestationVerifier,
     Clock,
     DeviceKeyVerifier,
     FileStorage,
+    FiscalReceiptProvider,
+    GeoLocator,
     ImageSanitizer,
     InsightsModel,
     KeyValueStore,
     MalwareScanner,
-    Notifier,
     PhoneCipher,
     PushSender,
+    RatesProvider,
+    ReceiptOcr,
+    ReportRenderer,
     SecretHasher,
     SmsSender,
     UrlSigner,
 )
 from app.application.common.rate_limit import RateLimiter
+from app.application.finance.cache import AggregateCache
+from app.application.finance.ledger import Ledger
 from app.application.notifications.notifier import AppNotifier
 from app.core.config import Environment, Settings, SmsProvider
+from app.domain.exports.entities import ExportFormat
 from app.domain.notifications.entities import PushProvider
 from app.infrastructure.ai.local import RuleBasedInsightsModel
 from app.infrastructure.cache.memory import InMemoryKeyValueStore
@@ -31,9 +39,12 @@ from app.infrastructure.db.session import create_engine, create_session_factory
 from app.infrastructure.db.uow import SqlAlchemyUnitOfWork
 from app.infrastructure.files.antivirus import ClamAvScanner, NoopScanner
 from app.infrastructure.files.images import PillowImageSanitizer
+from app.infrastructure.geo.noop import NoopGeoLocator
 from app.infrastructure.push.apns import ApnsSender
 from app.infrastructure.push.fcm import FcmSender
 from app.infrastructure.push.router import RoutingPushSender
+from app.infrastructure.rates.cbu import CbuRatesProvider
+from app.infrastructure.reports.renderers import build_renderers
 from app.infrastructure.security.cipher import AesGcmPhoneCipher
 from app.infrastructure.security.device_keys import EcdsaP256Verifier
 from app.infrastructure.security.hashing import HmacHasher
@@ -41,6 +52,8 @@ from app.infrastructure.security.jwt_tokens import Es256AccessTokenService
 from app.infrastructure.security.url_signer import HmacUrlSigner
 from app.infrastructure.sms.console import ConsoleSmsSender
 from app.infrastructure.sms.eskiz import EskizSmsSender
+from app.infrastructure.sms.fallback import FallbackSmsSender
+from app.infrastructure.sms.playmobile import PlayMobileSmsSender
 from app.infrastructure.storage.local import LocalFileStorage
 from app.infrastructure.storage.s3 import S3FileStorage
 
@@ -57,24 +70,35 @@ class Container:
     access_tokens: AccessTokenService
     key_verifier: DeviceKeyVerifier
     sms: SmsSender
-    notifier: Notifier
+    notifier: AppNotifier
     storage: FileStorage
     scanner: MalwareScanner
     sanitizer: ImageSanitizer
     signer: UrlSigner
     insights: InsightsModel
     push: PushSender | None = None
+    geo: GeoLocator = field(default_factory=NoopGeoLocator)
+    # Tashqi provayder tanlanmaguncha None -> 503 ocr_unavailable (docs: ochiq savol 3)
+    ocr: ReceiptOcr | None = None
+    fiscal: FiscalReceiptProvider | None = None
+    rates: RatesProvider | None = None
+    attestation: AttestationVerifier | None = None
+    renderers: dict[ExportFormat, ReportRenderer] = field(default_factory=dict)
     limiter: RateLimiter = field(init=False)
+    ledger: Ledger = field(init=False)
 
     def __post_init__(self) -> None:
         self.limiter = RateLimiter(self.kv)
+        self.ledger = Ledger(AggregateCache(self.kv))
+        if not self.renderers:
+            self.renderers = build_renderers(self.settings.pdf_font_path)
 
     def uow(self) -> SqlAlchemyUnitOfWork:
         return SqlAlchemyUnitOfWork(self.session_factory)
 
     async def aclose(self) -> None:
         """HTTP klientlari (SMS, push) va DB pulini yopadi."""
-        for resource in (self.sms, self.push):
+        for resource in (self.sms, self.push, self.rates):
             close = getattr(resource, "aclose", None)
             if close is not None:
                 await close()
@@ -99,10 +123,20 @@ def _build_scanner(settings: Settings) -> MalwareScanner:
     return NoopScanner(settings)
 
 
-def _build_sms(settings: Settings) -> SmsSender:
-    if settings.sms_provider is SmsProvider.ESKIZ:
+def _sms_provider(settings: Settings, provider: SmsProvider) -> SmsSender:
+    if provider is SmsProvider.ESKIZ:
         return EskizSmsSender(settings)
+    if provider is SmsProvider.PLAYMOBILE:
+        return PlayMobileSmsSender(settings)
     return ConsoleSmsSender(settings)
+
+
+def _build_sms(settings: Settings) -> SmsSender:
+    primary = _sms_provider(settings, settings.sms_provider)
+    fallback = settings.sms_fallback_provider
+    if fallback is None or fallback is settings.sms_provider:
+        return primary
+    return FallbackSmsSender(primary, _sms_provider(settings, fallback))
 
 
 def _build_push(settings: Settings) -> PushSender | None:
@@ -150,4 +184,5 @@ def build_container(settings: Settings) -> Container:
         # TODO: tashqi LLM — faqat "o'qitishda ishlatmaslik" shartnomasidan keyin (8-bo'lim)
         insights=RuleBasedInsightsModel(),
         push=push,
+        rates=CbuRatesProvider(settings.cbu_rates_url),
     )

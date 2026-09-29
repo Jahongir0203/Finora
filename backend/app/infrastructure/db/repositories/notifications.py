@@ -1,43 +1,105 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.notifications.entities import (
     Notification,
-    NotificationKind,
+    NotificationType,
     PushProvider,
+    PushScope,
+    PushStatus,
     PushTarget,
 )
 from app.infrastructure.db.models import DeviceModel, NotificationModel, SessionModel
+
+N = NotificationModel
+
+
+def _notification(m: NotificationModel) -> Notification:
+    return Notification(
+        id=m.id, user_id=m.user_id, type=NotificationType(m.type), title=m.title, body=m.body,
+        created_at=m.created_at, deep_link=m.deep_link, read_at=m.read_at,
+        deleted_at=m.deleted_at, dedupe_key=m.dedupe_key, push_status=PushStatus(m.push_status),
+        push_attempts=m.push_attempts, push_title=m.push_title, push_body=m.push_body,
+        exclude_device_id=m.exclude_device_id, push_scope=PushScope(m.push_scope),
+    )
 
 
 class SqlNotificationRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._s = session
 
-    async def add(self, n: Notification) -> None:
-        self._s.add(NotificationModel(id=n.id, user_id=n.user_id, kind=n.kind.value,
-                                      title=n.title, body=n.body, created_at=n.created_at))
-        await self._s.flush()
+    async def add(self, n: Notification) -> bool:
+        m = N(id=n.id, user_id=n.user_id, type=n.type.value, title=n.title, body=n.body,
+              deep_link=n.deep_link, created_at=n.created_at, dedupe_key=n.dedupe_key,
+              push_status=n.push_status.value, push_attempts=n.push_attempts,
+              push_title=n.push_title, push_body=n.push_body,
+              exclude_device_id=n.exclude_device_id, push_scope=n.push_scope.value)
+        if n.dedupe_key is None:
+            self._s.add(m)
+            await self._s.flush()
+            return True
+        try:
+            async with self._s.begin_nested():
+                self._s.add(m)
+                await self._s.flush()
+        except IntegrityError:
+            return False
+        return True
 
-    async def list_for_user(self, user_id: UUID, limit: int = 50) -> list[Notification]:
-        rows = await self._s.scalars(
-            select(NotificationModel).where(NotificationModel.user_id == user_id)
-            .order_by(NotificationModel.id.desc()).limit(limit)
+    async def list_for_user(self, user_id: UUID, *, limit: int,
+                            after: tuple[datetime, UUID] | None = None) -> list[Notification]:
+        stmt = select(N).where(N.user_id == user_id, N.deleted_at.is_(None))
+        if after is not None:
+            at, last_id = after
+            stmt = stmt.where(or_(N.created_at < at, and_(N.created_at == at, N.id < last_id)))
+        rows = await self._s.scalars(stmt.order_by(N.created_at.desc(), N.id.desc()).limit(limit))
+        return [_notification(m) for m in rows]
+
+    async def unread_count(self, user_id: UUID) -> int:
+        n = await self._s.scalar(
+            select(func.count()).select_from(N).where(
+                N.user_id == user_id, N.read_at.is_(None), N.deleted_at.is_(None))
         )
-        return [Notification(id=m.id, user_id=m.user_id, kind=NotificationKind(m.kind),
-                             title=m.title, body=m.body, created_at=m.created_at,
-                             read_at=m.read_at) for m in rows]
+        return int(n or 0)
 
     async def mark_read(self, user_id: UUID, notification_id: UUID, at: datetime) -> bool:
         result = await self._s.execute(
-            update(NotificationModel)
-            .where(NotificationModel.id == notification_id, NotificationModel.user_id == user_id)
-            .values(read_at=at)
+            update(N).where(N.id == notification_id, N.user_id == user_id,
+                            N.deleted_at.is_(None))
+            .values(read_at=func.coalesce(N.read_at, at))
         )
         return bool(result.rowcount)  # type: ignore[attr-defined]
+
+    async def mark_all_read(self, user_id: UUID, at: datetime) -> int:
+        result = await self._s.execute(
+            update(N).where(N.user_id == user_id, N.read_at.is_(None), N.deleted_at.is_(None))
+            .values(read_at=at)
+        )
+        return result.rowcount or 0  # type: ignore[attr-defined]
+
+    async def clear(self, user_id: UUID, at: datetime) -> int:
+        result = await self._s.execute(
+            update(N).where(N.user_id == user_id, N.deleted_at.is_(None))
+            .values(deleted_at=at, read_at=func.coalesce(N.read_at, at))
+        )
+        return result.rowcount or 0  # type: ignore[attr-defined]
+
+    async def pending_push(self, limit: int) -> list[Notification]:
+        rows = await self._s.scalars(
+            select(N).where(N.push_status == PushStatus.PENDING.value)
+            .order_by(N.created_at).limit(limit)
+        )
+        return [_notification(m) for m in rows]
+
+    async def set_push_status(self, notification_id: UUID, status: str, attempts: int) -> None:
+        await self._s.execute(
+            update(N).where(N.id == notification_id)
+            .values(push_status=status, push_attempts=attempts)
+        )
 
 
 class SqlPushTokenRepository:

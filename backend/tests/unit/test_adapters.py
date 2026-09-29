@@ -148,3 +148,94 @@ async def test_s3_storage_encrypts_and_presigns():
 
     url = await storage.presigned_get_url("receipts/u/r.jpg", 300)
     assert url and "X-Amz-Expires=300" in url and "X-Amz-Signature=" in url
+
+
+async def test_phone_key_rotation(client, container, settings):
+    import base64
+
+    from pydantic import SecretStr
+
+    from app.domain.common.values import PhoneNumber
+    from app.infrastructure.security.cipher import AesGcmPhoneCipher
+    from app.jobs import run
+    from tests.conftest import login
+
+    s = await login(client, container, "+998909990001")
+    old_key = settings.field_encryption_key.get_secret_value()
+    rotated = settings.model_copy(update={
+        "field_encryption_key": SecretStr(base64.b64encode(b"n" * 32).decode()),
+        "field_encryption_key_version": 2,
+        "field_encryption_keys_previous": SecretStr(f"1:{old_key}"),
+    })
+    container.cipher = AesGcmPhoneCipher(rotated)
+    assert (await run(container, "reencrypt-phones"))["reencrypted"] == 1
+    assert (await run(container, "reencrypt-phones"))["reencrypted"] == 0
+    only_new = AesGcmPhoneCipher(rotated.model_copy(update={
+        "field_encryption_keys_previous": None}))
+    async with container.uow() as uow:
+        user = await uow.users.get_by_phone_index(
+            container.hasher.phone_index(PhoneNumber("+998909990001")))
+    assert user.phone_ciphertext[0] == 2
+    assert only_new.decrypt(user.phone_ciphertext).value == "+998909990001"
+    del s
+
+
+async def test_cbu_rates_parsing_with_nominal():
+    from decimal import Decimal
+
+    import httpx
+
+    from app.infrastructure.rates.cbu import CbuRatesProvider
+
+    payload = [{"Ccy": "USD", "Rate": "11806.97", "Nominal": "1"},
+               {"Ccy": "KRW", "Rate": "8.5", "Nominal": "1"},
+               {"Ccy": "KZT", "Rate": "267.8", "Nominal": "10"},
+               {"Ccy": "EUR", "Rate": "bad", "Nominal": "1"}]
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    provider = CbuRatesProvider("https://cbu.test/json/",
+                                client=httpx.AsyncClient(transport=transport))
+    assert await provider.fetch() == {"USD": Decimal("11806.9700"),
+                                      "KZT": Decimal("26.7800")}
+
+
+async def test_sms_fallback_uses_secondary_on_503():
+    from app.domain.common.errors import ServiceUnavailableError
+    from app.domain.common.values import PhoneNumber
+    from app.infrastructure.sms.console import InMemorySmsSender
+    from app.infrastructure.sms.fallback import FallbackSmsSender
+
+    class Down:
+        async def send(self, phone, text):
+            raise ServiceUnavailableError()
+
+    backup = InMemorySmsSender()
+    await FallbackSmsSender(Down(), backup).send(PhoneNumber("+998901234567"), "kod 123456")
+    assert len(backup.outbox) == 1
+
+
+async def test_playmobile_request_shape():
+    import json
+
+    import httpx
+    from pydantic import SecretStr
+
+    from app.core.config import Settings
+    from app.domain.common.values import PhoneNumber
+    from app.infrastructure.sms.playmobile import PlayMobileSmsSender
+
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["body"] = json.loads(request.content)
+        seen["auth"] = request.headers["authorization"]
+        return httpx.Response(200)
+
+    settings = Settings(env="test", playmobile_login="finora",
+                        playmobile_password=SecretStr("pw"))
+    sender = PlayMobileSmsSender(settings, client=httpx.AsyncClient(
+        base_url="https://pm.test", transport=httpx.MockTransport(handler),
+        auth=("finora", "pw")))
+    await sender.send(PhoneNumber("+998901234567"), "Finora: kod 123456")
+    msg = seen["body"]["messages"][0]
+    assert msg["recipient"] == "998901234567" and msg["sms"]["content"]["text"].endswith("123456")
+    assert seen["auth"].startswith("Basic ")

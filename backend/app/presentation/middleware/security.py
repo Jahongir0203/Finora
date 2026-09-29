@@ -20,7 +20,7 @@ SECURITY_HEADERS = [
 RECEIPT_UPLOAD_PATH = "/v1/receipts/scan"
 # Klaster ichidan (pod'ga to'g'ridan-to'g'ri) HTTP orqali so'raladi; gateway bu yo'llarni
 # tashqariga chiqarmaydi. /metrics qo'shimcha ravishda Bearer token bilan himoyalangan
-_EXEMPT_PATHS = {"/health", "/metrics"}
+_EXEMPT_PATHS = {"/health", "/ready", "/metrics"}
 
 
 async def _send_error(send: Send, status: int, code: str, message: str) -> None:

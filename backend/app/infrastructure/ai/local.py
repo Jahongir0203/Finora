@@ -2,26 +2,27 @@
 
 Real LLM provayderi faqat ma'lumotni o'qitishda ishlatmaslik sharti yozilgan shartnomadan
 keyin ulanadi (02-backend.md, 8-bo'lim) — shu InsightsModel porti orqali.
+Javob foydalanuvchi tilida (`language`), faqat jamlangan summalar asosida.
 """
 
 import json
 
-
-def _fmt(amount: int) -> str:
-    return f"{amount:,}".replace(",", " ")
+from app.core.i18n import format_amount, t
 
 
 class RuleBasedInsightsModel:
     async def complete(self, system: str, prompt: str) -> str:
         data = json.loads(prompt)
-        totals: dict[str, int] = data.get("expenses_by_category", {})
+        locale = str(data.get("language") or "uz-Latn")
+        days = int(data.get("window_days", 90))
+        totals: dict[str, int] = {}
+        for cats in (data.get("expenses_by_month_and_category") or {}).values():
+            for cat, amount in cats.items():
+                totals[cat] = totals.get(cat, 0) + int(amount)
         if not totals:
-            return "Oxirgi davrda xarajatlar topilmadi. Tranzaksiyalarni kiritishni boshlang."
+            return t("ai.no_data", locale, days=days)
         total = sum(totals.values())
         top_cat, top_sum = max(totals.items(), key=lambda kv: kv[1])
         share = round(top_sum * 100 / total) if total else 0
-        return (
-            f"Oxirgi {data.get('period_days', 30)} kunda jami xarajat {_fmt(total)} so'm. "
-            f"Eng katta ulush: {top_cat} ({share}%). "
-            f"Shu kategoriya uchun oylik byudjet belgilashni ko'rib chiqing."
-        )
+        return t("ai.summary", locale, days=days, total=format_amount(total),
+                 category=top_cat, share=share)

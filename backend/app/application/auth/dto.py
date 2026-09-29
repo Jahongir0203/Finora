@@ -27,6 +27,13 @@ class RequestOtpCommand:
     phone: str
     ip: str
     installation_id: UUID
+    attestation_token: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class OtpSent:
+    resend_after: int
+    expires_in: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +52,10 @@ class VerifyOtpCommand:
 class VerifyOtpResult:
     tokens: TokenPair
     is_new_user: bool
+    user_id: UUID
+    first_name: str | None
+    has_pin_setup: bool
+    onboarding: dict[str, bool]
 
 
 @dataclass(frozen=True, slots=True)

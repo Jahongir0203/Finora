@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 
 from app.application.common.interfaces import AccessClaims
 from app.core.config import Environment, Settings
-from app.domain.common.errors import AuthenticationError
+from app.domain.common.errors import AuthenticationError, TokenExpiredError
 
 _ALG = "ES256"
 logger = logging.getLogger("finora.security")
@@ -57,5 +57,8 @@ class Es256AccessTokenService:
             )
             return AccessClaims(sub=UUID(data["sub"]), sid=UUID(data["sid"]),
                                 did=UUID(data["did"]), exp=int(data["exp"]))
+        except jwt.ExpiredSignatureError:
+            # Mijoz refresh qiladi (UI "Session expired" — faqat refresh ham o'tmasa)
+            raise TokenExpiredError() from None
         except (jwt.PyJWTError, ValueError, KeyError):
             raise AuthenticationError() from None

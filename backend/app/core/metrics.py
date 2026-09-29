@@ -8,7 +8,7 @@ Alert qoidalari: deploy/monitoring/alerts.yml.
 
 import logging
 
-from prometheus_client import CollectorRegistry, Counter
+from prometheus_client import CollectorRegistry, Counter, Histogram
 
 REGISTRY = CollectorRegistry(auto_describe=True)
 
@@ -17,6 +17,7 @@ SECURITY_EVENTS = frozenset({
     "otp_invalid",
     "otp_blocked",
     "otp_ip_limit_exceeded",
+    "otp_ip_many_numbers",
     "refresh_token_reuse",
     "receipt_malware_detected",
     "sms_auth_failed",
@@ -25,6 +26,8 @@ SECURITY_EVENTS = frozenset({
     "push_failed",
     "push_timeout",
     "unhandled_error",
+    "export_failed",
+    "ai_unavailable",
 })
 
 security_events = Counter(
@@ -32,6 +35,11 @@ security_events = Counter(
 )
 http_responses = Counter(
     "finora_http_responses", "HTTP javoblar status kodi bo'yicha", ["status"], registry=REGISTRY
+)
+# Latency (BE-004): route shabloni bo'yicha (label'da ID yo'q — kardinallik cheklangan)
+http_latency = Histogram(
+    "finora_http_request_duration_seconds", "So'rov davomiyligi", ["method", "route"],
+    buckets=(0.025, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0, 2.0, 4.0, 10.0), registry=REGISTRY,
 )
 rate_limited = Counter(
     "finora_rate_limited", "429 javoblar limit doirasi bo'yicha", ["scope"], registry=REGISTRY

@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
@@ -12,21 +13,34 @@ OtpCode = Annotated[str, StringConstraints(pattern=r"^\d{6}$")]
 Base64Key = Annotated[str, StringConstraints(min_length=40, max_length=700,
                                              pattern=r"^[A-Za-z0-9_\-+/=]+$")]
 OpaqueToken = Annotated[str, StringConstraints(min_length=20, max_length=128)]
+AttestationToken = Annotated[str, StringConstraints(min_length=16, max_length=8192)]
+
+
+class OtpPurpose(StrEnum):
+    LOGIN = "login"
+    PIN_RESET = "pin_reset"
 
 
 class OtpRequestIn(StrictModel):
     phone: Phone
-    installation_id: UUID
+    # Ilova o'rnatilganda yaratiladigan UUID (installation id)
+    device_id: UUID
+    attestation_token: AttestationToken | None = None
+
+
+class OtpSentOut(BaseModel):
+    resend_after: int
+    expires_in: int
 
 
 class OtpVerifyIn(StrictModel):
     phone: Phone
     code: OtpCode
-    installation_id: UUID
+    device_id: UUID
     device_public_key: Base64Key
     device_name: Name
     platform: Platform
-    pin_reset: bool = False
+    purpose: OtpPurpose = OtpPurpose.LOGIN
 
 
 class RefreshIn(StrictModel):
@@ -40,14 +54,30 @@ class TokenOut(BaseModel):
     expires_in: int
 
 
+class OnboardingOut(BaseModel):
+    balance_set: bool
+    has_transactions: bool
+    has_goals: bool
+    has_reminders: bool
+
+
+class VerifyUserOut(BaseModel):
+    id: UUID
+    first_name: str | None
+    is_new: bool
+    has_pin_setup: bool
+    onboarding: OnboardingOut
+
+
 class VerifyOut(TokenOut):
-    is_new_user: bool
+    user: VerifyUserOut
 
 
 class DeviceOut(BaseModel):
     id: UUID
     name: str
     platform: Platform
+    city: str | None
+    last_active_at: datetime
     created_at: datetime
-    last_seen_at: datetime
-    is_current: bool
+    current: bool

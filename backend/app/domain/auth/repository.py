@@ -22,7 +22,8 @@ class SessionRepository(Protocol):
         self, user_id: UUID, device_id: UUID, reason: RevokeReason, at: datetime
     ) -> int: ...
     async def revoke_all_for_user(
-        self, user_id: UUID, reason: RevokeReason, at: datetime
+        self, user_id: UUID, reason: RevokeReason, at: datetime, *,
+        except_device_id: UUID | None = None,
     ) -> int: ...
 
 

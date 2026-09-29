@@ -4,37 +4,48 @@ from typing import Self
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.application.common.idempotency import IdempotencyRepository
+from app.domain.accounts.repository import AccountRepository
 from app.domain.audit.repository import AuditRepository
 from app.domain.auth.repository import (
     DeviceRepository,
     RefreshTokenRepository,
     SessionRepository,
 )
-from app.domain.budgets.repository import BudgetRepository
+from app.domain.categories.repository import CategoryRepository
+from app.domain.currencies.repository import CurrencyRateRepository
 from app.domain.exports.repository import ExportRepository
 from app.domain.goals.repository import GoalRepository
+from app.domain.help.repository import FaqRepository
+from app.domain.insights.repository import InsightRepository
 from app.domain.notifications.repository import NotificationRepository, PushTokenRepository
 from app.domain.receipts.repository import ReceiptRepository
 from app.domain.reminders.repository import ReminderRepository
-from app.domain.transactions.repository import TransactionRepository
+from app.domain.transactions.repository import LedgerQueries, TransactionRepository
 from app.domain.users.repository import UserRepository
+from app.infrastructure.db.repositories.accounts import SqlAccountRepository
 from app.infrastructure.db.repositories.audit import SqlAuditRepository
 from app.infrastructure.db.repositories.auth import (
     SqlDeviceRepository,
     SqlRefreshTokenRepository,
     SqlSessionRepository,
 )
-from app.infrastructure.db.repositories.budgets import SqlBudgetRepository
+from app.infrastructure.db.repositories.categories import SqlCategoryRepository
+from app.infrastructure.db.repositories.currencies import SqlCurrencyRateRepository
 from app.infrastructure.db.repositories.exports import SqlExportRepository
 from app.infrastructure.db.repositories.goals import SqlGoalRepository
+from app.infrastructure.db.repositories.help import SqlFaqRepository
 from app.infrastructure.db.repositories.idempotency import SqlIdempotencyRepository
+from app.infrastructure.db.repositories.insights import SqlInsightRepository
 from app.infrastructure.db.repositories.notifications import (
     SqlNotificationRepository,
     SqlPushTokenRepository,
 )
 from app.infrastructure.db.repositories.receipts import SqlReceiptRepository
 from app.infrastructure.db.repositories.reminders import SqlReminderRepository
-from app.infrastructure.db.repositories.transactions import SqlTransactionRepository
+from app.infrastructure.db.repositories.transactions import (
+    SqlLedgerQueries,
+    SqlTransactionRepository,
+)
 from app.infrastructure.db.repositories.users import SqlUserRepository
 
 
@@ -52,7 +63,12 @@ class SqlAlchemyUnitOfWork:
     exports: ExportRepository
     receipts: ReceiptRepository
     reminders: ReminderRepository
-    budgets: BudgetRepository
+    accounts: AccountRepository
+    categories: CategoryRepository
+    ledger: LedgerQueries
+    insights: InsightRepository
+    faq: FaqRepository
+    currency_rates: CurrencyRateRepository
     notifications: NotificationRepository
     push_tokens: PushTokenRepository
     audit: AuditRepository
@@ -74,7 +90,12 @@ class SqlAlchemyUnitOfWork:
         self.exports = SqlExportRepository(s)
         self.receipts = SqlReceiptRepository(s)
         self.reminders = SqlReminderRepository(s)
-        self.budgets = SqlBudgetRepository(s)
+        self.accounts = SqlAccountRepository(s)
+        self.categories = SqlCategoryRepository(s)
+        self.ledger = SqlLedgerQueries(s)
+        self.insights = SqlInsightRepository(s)
+        self.faq = SqlFaqRepository(s)
+        self.currency_rates = SqlCurrencyRateRepository(s)
         self.notifications = SqlNotificationRepository(s)
         self.push_tokens = SqlPushTokenRepository(s)
         self.audit = SqlAuditRepository(s)

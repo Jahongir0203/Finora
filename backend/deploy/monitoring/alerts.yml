@@ -32,6 +32,13 @@ groups:
         annotations:
           summary: "Bitta IP'dan ko'p telefon raqamiga OTP so'ralmoqda (SMS bombing?)"
 
+      - alert: FinoraOtpIpManyNumbers
+        # Bitta IP'dan soat ichida 5 dan ortiq TURLI raqamga OTP (limitga yetmasdan ham)
+        expr: sum(increase(finora_security_events_total{event="otp_ip_many_numbers"}[15m])) > 0
+        labels: {severity: warning, team: backend}
+        annotations:
+          summary: "Bitta IP'dan ko'p turli telefon raqami — raqamlarni sanab chiqish (enumeration)?"
+
       - alert: FinoraRefreshTokenReuse
         expr: sum(increase(finora_security_events_total{event="refresh_token_reuse"}[5m])) > 0
         labels: {severity: warning, team: backend}
@@ -71,3 +78,20 @@ groups:
         labels: {severity: warning, team: backend}
         annotations:
           summary: "{{ $labels.scope }} bo'yicha 429 keskin oshdi — suiiste'mol yoki mijoz xatosi"
+
+      - alert: FinoraSlowRequests
+        # BE-301 / BE-1902: Home, Activity, Stats p95 < 300 ms
+        expr: |
+          histogram_quantile(0.95, sum by (le, route) (
+            rate(finora_http_request_duration_seconds_bucket{route=~"/v1/(home|transactions|stats)"}[5m])
+          )) > 0.3
+        for: 10m
+        labels: {severity: warning, team: backend}
+        annotations:
+          summary: "{{ $labels.route }} p95 > 300 ms"
+
+      - alert: FinoraExportFailures
+        expr: sum(increase(finora_security_events_total{event="export_failed"}[30m])) > 5
+        labels: {severity: warning, team: backend}
+        annotations:
+          summary: "Eksport fayllari yaratilmayapti"

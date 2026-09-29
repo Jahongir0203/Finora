@@ -11,7 +11,9 @@ from app.infrastructure.db.models import DeviceModel, RefreshTokenModel, Session
 def _device(m: DeviceModel) -> Device:
     return Device(id=m.id, user_id=m.user_id, installation_id=m.installation_id,
                   public_key=m.public_key, name=m.name, platform=Platform(m.platform),
-                  created_at=m.created_at, last_seen_at=m.last_seen_at)
+                  created_at=m.created_at, last_seen_at=m.last_seen_at,
+                  has_pin_setup=m.has_pin_setup, auto_lock_minutes=m.auto_lock_minutes,
+                  biometric_enabled=m.biometric_enabled, city=m.city)
 
 
 def _session(m: SessionModel) -> Session:
@@ -49,6 +51,8 @@ class SqlDeviceRepository:
             id=device.id, user_id=device.user_id, installation_id=device.installation_id,
             public_key=device.public_key, name=device.name, platform=device.platform.value,
             created_at=device.created_at, last_seen_at=device.last_seen_at,
+            has_pin_setup=device.has_pin_setup, auto_lock_minutes=device.auto_lock_minutes,
+            biometric_enabled=device.biometric_enabled, city=device.city,
         ))
         await self._s.flush()
 
@@ -57,7 +61,10 @@ class SqlDeviceRepository:
             update(DeviceModel)
             .where(DeviceModel.id == device.id, DeviceModel.user_id == device.user_id)
             .values(public_key=device.public_key, name=device.name,
-                    platform=device.platform.value, last_seen_at=device.last_seen_at)
+                    platform=device.platform.value, last_seen_at=device.last_seen_at,
+                    has_pin_setup=device.has_pin_setup,
+                    auto_lock_minutes=device.auto_lock_minutes,
+                    biometric_enabled=device.biometric_enabled, city=device.city)
         )
 
 
@@ -97,8 +104,12 @@ class SqlSessionRepository:
         return await self._revoke(reason, at, SessionModel.user_id == user_id,
                                   SessionModel.device_id == device_id)
 
-    async def revoke_all_for_user(self, user_id: UUID, reason: RevokeReason, at: datetime) -> int:
-        return await self._revoke(reason, at, SessionModel.user_id == user_id)
+    async def revoke_all_for_user(self, user_id: UUID, reason: RevokeReason, at: datetime,
+                                  *, except_device_id: UUID | None = None) -> int:
+        where = [SessionModel.user_id == user_id]
+        if except_device_id is not None:
+            where.append(SessionModel.device_id != except_device_id)
+        return await self._revoke(reason, at, *where)
 
 
 class SqlRefreshTokenRepository:

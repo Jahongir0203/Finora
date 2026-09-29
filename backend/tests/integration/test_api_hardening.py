@@ -34,7 +34,9 @@ async def test_error_format_has_no_internals(client):
     r = await client.post("/v1/auth/otp", json={"phone": 123})
     assert r.status_code == 422
     body = r.json()
-    assert set(body) == {"code", "message", "request_id"}
+    assert set(body) == {"code", "message", "request_id", "fields"}
+    assert body["code"] == "validation_error"
+    assert "phone" in body["fields"] and "device_id" in body["fields"]
     assert "Traceback" not in r.text
 
     r = await client.get("/v1/does-not-exist")
@@ -59,3 +61,19 @@ async def test_logs_do_not_contain_phone_or_otp(client, container, caplog):
     assert code not in output
     assert s.access not in output and s.refresh not in output
     assert "+998 90 *** ** 67" in output
+
+
+async def test_error_message_follows_accept_language(client):
+    r = await client.get("/v1/goals", headers={"Accept-Language": "ru-RU,ru;q=0.9"})
+    assert r.status_code == 401
+    assert r.json()["message"] == "Требуется авторизация"
+    r = await client.get("/v1/goals", headers={"Accept-Language": "uz-Cyrl"})
+    assert r.json()["message"] == "Авторизация талаб қилинади"
+    r = await client.get("/v1/goals", headers={"Accept-Language": "en"})
+    assert r.json()["message"] == "Authorization required"
+
+
+async def test_health_and_ready(client):
+    assert (await client.get("/health")).json() == {"status": "ok"}
+    r = await client.get("/ready")
+    assert r.status_code == 200 and r.json() == {"status": "ok", "db": True, "cache": True}

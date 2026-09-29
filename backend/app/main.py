@@ -1,4 +1,6 @@
 import hmac
+import json
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
@@ -7,6 +9,7 @@ from typing import Annotated
 from fastapi import FastAPI, Header, Response
 from fastapi.responses import PlainTextResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from sqlalchemy import text
 
 from app.container import Container, build_container
 from app.core.config import Settings, get_settings
@@ -15,8 +18,11 @@ from app.core.metrics import REGISTRY
 from app.domain.common.errors import AuthenticationError
 from app.presentation.api.router import api_router
 from app.presentation.errors import register_error_handlers
+from app.presentation.middleware.locale import LocaleMiddleware
 from app.presentation.middleware.request_id import RequestIdMiddleware
 from app.presentation.middleware.security import SecurityMiddleware
+
+logger = logging.getLogger("finora.app")
 
 
 def create_app(settings: Settings | None = None, container: Container | None = None) -> FastAPI:
@@ -44,6 +50,25 @@ def create_app(settings: Settings | None = None, container: Container | None = N
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    @app.get("/ready", include_in_schema=False)
+    async def ready() -> Response:
+        """Readiness (BE-001): DB va Redis javob beryaptimi. Tafsilot tashqariga chiqmaydi."""
+        checks = {"db": False, "cache": False}
+        try:
+            async with container.engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+            checks["db"] = True
+        except Exception:
+            logger.exception("ready_db_failed")
+        try:
+            await container.kv.set("ready:ping", "1", 5)
+            checks["cache"] = await container.kv.get("ready:ping") == "1"
+        except Exception:
+            logger.exception("ready_cache_failed")
+        ok = all(checks.values())
+        return Response(json.dumps({"status": "ok" if ok else "unavailable", **checks}),
+                        status_code=200 if ok else 503, media_type="application/json")
+
     if settings.metrics_token is not None:
         metrics_token = settings.metrics_token.get_secret_value().encode()
 
@@ -66,6 +91,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
             )
 
     # Tartib: tashqi → ichki. RequestId eng tashqarida, xatolarda ham request_id bo'lsin
+    app.add_middleware(LocaleMiddleware)
     app.add_middleware(SecurityMiddleware, settings=settings)
     app.add_middleware(RequestIdMiddleware)
     return app

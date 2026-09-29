@@ -22,7 +22,7 @@ async def test_metrics_require_token_and_count_security_events(settings, contain
 
     async with await _client(settings, container) as c:
         device = DeviceKey()
-        body = {"phone": "+998905000001", "installation_id": device.installation_id}
+        body = {"phone": "+998905000001", "device_id": device.installation_id}
         await c.post("/v1/auth/otp", json=body)
         await c.post("/v1/auth/otp", json=body)  # 60 s ichida — 429
         wrong = "000000" if last_code(container) != "000000" else "111111"

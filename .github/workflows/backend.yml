@@ -4,7 +4,7 @@ name: backend
 
 on:
   pull_request:
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "docs/backend/openapi.json", ".github/workflows/backend.yml"]
   push:
     branches: [main]
 
@@ -34,6 +34,8 @@ jobs:
         env:
           FINORA_MIGRATIONS_DATABASE_URL: sqlite+aiosqlite:///./ci-migrations.db
         run: uv run alembic upgrade head && uv run alembic check
+      - name: OpenAPI spetsifikatsiyasi yangilangan (BE-1901)
+        run: uv run python -m app.openapi ../docs/backend/openapi.json --check
 
   sca:
     runs-on: ubuntu-latest

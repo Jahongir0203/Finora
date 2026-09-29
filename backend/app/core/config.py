@@ -16,6 +16,7 @@ class Environment(StrEnum):
 class SmsProvider(StrEnum):
     CONSOLE = "console"  # faqat dev
     ESKIZ = "eskiz"
+    PLAYMOBILE = "playmobile"
 
 
 class Settings(BaseSettings):
@@ -26,6 +27,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     database_url: str = "postgresql+asyncpg://finora_app:finora@localhost:5432/finora"
+    # Faqat audit retention job'i uchun (finora_owner roli). API bu ulanishni ishlatmaydi
+    maintenance_database_url: SecretStr | None = None
     redis_url: str | None = "redis://localhost:6379/0"
 
     # --- SMS (Eskiz.uz). Matn shabloni Eskiz kabinetida oldindan tasdiqlangan bo'lishi kerak
@@ -52,6 +55,9 @@ class Settings(BaseSettings):
     otp_hmac_key: SecretStr = SecretStr("dev-otp-hmac-key-change-me-0000000")
     blind_index_key: SecretStr = SecretStr("dev-blind-index-key-change-me-000")
     field_encryption_key: SecretStr = SecretStr("ZGV2LWZpZWxkLWtleS0zMi1ieXRlcy1sb25nLSEhISE=")
+    # Kalit almashtirish (yillik): joriy versiya va eski kalitlar "1:<base64>,2:<base64>"
+    field_encryption_key_version: int = 1
+    field_encryption_keys_previous: SecretStr | None = None
     refresh_token_pepper: SecretStr = SecretStr("dev-refresh-pepper-change-me-0000")
     # Chek rasmlari uchun imzolangan URL kaliti (02-backend.md, 6-bo'lim)
     url_signing_key: SecretStr = SecretStr("dev-url-signing-key-change-me-000")
@@ -92,7 +98,32 @@ class Settings(BaseSettings):
     ai_per_hour: int = 20
     ai_per_day: int = 100
     ai_question_max_length: int = 300
-    ai_window_days: int = 30
+    # AI konteksti: oxirgi 3 oy (BE-903)
+    ai_window_days: int = 90
+
+    # Yordam (BE-1701, BE-1702): dizayndagi aloqa qiymatlari
+    support_telegram: str = "@finora_support"
+    support_phone: str = "+998 71 200 00 00"
+    support_email: str = "help@finora.uz"
+    # Live chat identity verification kaliti (Crisp/Intercom/Chatwoot). Bo'sh — chat o'chiq
+    support_chat_provider: str = "chatwoot"
+    support_chat_secret: SecretStr | None = None
+
+    # Valyuta kurslari manbai (BE-1602)
+    cbu_rates_url: str = "https://cbu.uz/uz/arkhiv-kursov-valyut/json/"
+
+    # PDF eksport uchun Unicode TTF shrift (kirill, o'zbek harflari). Dockerda DejaVuSans
+    pdf_font_path: str | None = None
+
+    # SMS zaxira provayderi (BE-101): asosiy ishlamasa shu orqali
+    sms_fallback_provider: SmsProvider | None = None
+    playmobile_base_url: str = "https://send.smsxabar.uz/broker-api"
+    playmobile_login: str | None = None
+    playmobile_password: SecretStr | None = None
+    playmobile_originator: str = "3700"
+
+    # Play Integrity / App Attest (BE-106). True bo'lsa attestation_token majburiy
+    attestation_required: bool = False
 
     # security.txt (RFC 9116) uchun aloqa, masalan "mailto:security@finora.uz"
     security_contact: str | None = None

@@ -28,6 +28,7 @@ from app.domain.auth.entities import RefreshToken, RevokeReason, Session
 from app.domain.common.errors import (
     AuthenticationError,
     NotFoundError,
+    SessionExpiredError,
     TokenReuseDetectedError,
 )
 
@@ -65,10 +66,10 @@ class _SessionLookup:
     async def _load(self, uow: UnitOfWork, raw_token: str) -> tuple[RefreshToken, Session]:
         token = await uow.refresh_tokens.get_by_hash(self._hasher.token_hash(raw_token))
         if token is None:
-            raise AuthenticationError()
+            raise SessionExpiredError()
         session = await uow.sessions.get(token.session_id)
         if session is None or not session.is_active:
-            raise AuthenticationError()
+            raise SessionExpiredError()
         return token, session
 
 
@@ -105,7 +106,7 @@ class RefreshTokens(_SessionLookup):
                 await self._revoke_family(uow, session)
                 raise TokenReuseDetectedError()
             if now >= token.expires_at:
-                raise AuthenticationError()
+                raise SessionExpiredError()
 
             device = await uow.devices.get_for_user(session.user_id, session.device_id)
             if device is None:
@@ -146,6 +147,8 @@ class Logout:
     async def execute(self, ctx: AuthContext) -> None:
         async with self._uow as uow:
             await uow.sessions.revoke(ctx.session_id, RevokeReason.LOGOUT, self._clock.now())
+            # Chiqqan qurilmaga endi push yuborilmaydi (BE-404)
+            await uow.push_tokens.set(ctx.user_id, ctx.device_id, None, None)
             await record_audit(uow, self._clock, AuditAction.LOGOUT,
                                user_id=ctx.user_id, device_id=ctx.device_id)
             await uow.commit()
@@ -201,6 +204,7 @@ class SignOutDevice:
             await uow.sessions.revoke_for_device(
                 ctx.user_id, device.id, RevokeReason.LOGOUT, self._clock.now()
             )
+            await uow.push_tokens.set(ctx.user_id, device.id, None, None)
             await record_audit(uow, self._clock, AuditAction.LOGOUT, user_id=ctx.user_id,
                                device_id=device.id, initiated_by=str(ctx.device_id))
             await uow.commit()

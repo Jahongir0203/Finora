@@ -25,6 +25,10 @@ $$;
 ALTER ROLE finora_owner PASSWORD :owner_pw;
 ALTER ROLE finora_app PASSWORD :app_pw;
 
+-- Activity qidiruvi (BE-503) uchun trigram indekslar. Kengaytma superuser nomidan yaratiladi,
+-- migratsiya faqat indeks qo'shadi (kengaytma bo'lmasa indekssiz ishlaydi)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- Hech kim public sxemada o'zicha obyekt yarata olmasin (PG < 15 da standart ruxsat bor edi)
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON DATABASE finora FROM PUBLIC;

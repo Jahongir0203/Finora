@@ -1,0 +1,16 @@
+from typing import Protocol
+from uuid import UUID
+
+from app.domain.insights.entities import Insight
+
+
+class InsightRepository(Protocol):
+    async def upsert(self, insight: Insight) -> None:
+        """dedupe_key bo'yicha: bor bo'lsa summa/parametrlar yangilanadi, status saqlanadi."""
+        ...
+    async def list_for_user(self, user_id: UUID, *, include_dismissed: bool) -> list[Insight]: ...
+    async def get_for_user(self, user_id: UUID, insight_id: UUID) -> Insight | None: ...
+    async def update(self, insight: Insight) -> None: ...
+    async def expire_other(self, user_id: UUID, keep_keys: set[str]) -> None:
+        """Endi dolzarb bo'lmagan faol tavsiyalarni o'chiradi (dismiss qilinganlar qoladi)."""
+        ...

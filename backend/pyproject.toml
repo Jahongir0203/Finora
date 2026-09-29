@@ -23,6 +23,9 @@ dependencies = [
     "httpx[http2]>=0.27",
     "boto3>=1.35",
     "prometheus-client>=0.21",
+    "fpdf2>=2.8",
+    "openpyxl>=3.1",
+    "tzdata>=2024.1",
 ]
 
 [dependency-groups]
@@ -35,6 +38,7 @@ dev = [
     "bandit>=1.7",
     "pip-audit>=2.7",
     "boto3-stubs[s3]>=1.35",
+    "types-openpyxl>=3.1.5.20260827",
 ]
 
 [tool.uv]
@@ -58,8 +62,14 @@ select = ["E", "F", "I", "B", "UP", "S", "ASYNC", "RUF"]
 ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
+# Lokalizatsiya matnlari (kirill, o'zbek apostrofi) — ataylab
+"app/core/i18n.py" = ["RUF001"]
+"app/seed.py" = ["RUF001", "T201"]
+"app/infrastructure/reports/renderers.py" = ["RUF001"]
+"app/application/insights/use_cases.py" = ["RUF001"]
+"app/application/receipts/parsing.py" = ["RUF001"]
 # Testlarda sinxron fayl tekshiruvlari (tmp_path) muammo emas
-"tests/**" = ["S105", "S106", "ASYNC240"]
+"tests/**" = ["S105", "S106", "ASYNC240", "RUF001"]
 
 [tool.mypy]
 python_version = "3.12"

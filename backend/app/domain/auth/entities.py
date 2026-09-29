@@ -25,6 +25,15 @@ class Device:
     platform: Platform
     created_at: datetime
     last_seen_at: datetime
+    # Qurilma darajasidagi holat va sozlamalar (BE-201, BE-205). PIN'ning o'zi serverda yo'q
+    has_pin_setup: bool = False
+    auto_lock_minutes: int = 1
+    biometric_enabled: bool = False
+    # Oxirgi kirish shahri (IP geolokatsiya), "New sign-in" matni va qurilmalar ro'yxati uchun
+    city: str | None = None
+
+
+AUTO_LOCK_CHOICES = (1, 3, 5)
 
 
 class RevokeReason(StrEnum):
@@ -33,6 +42,7 @@ class RevokeReason(StrEnum):
     REFRESH_REUSE = "refresh_reuse"
     PIN_FAILURES = "pin_failures"
     RELOGIN = "relogin"
+    PIN_RESET = "pin_reset"
     ACCOUNT_DELETED = "account_deleted"
 
 

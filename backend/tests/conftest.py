@@ -51,8 +51,11 @@ class FakePush:
     def __init__(self) -> None:
         self.sent: list[tuple[str, str, str]] = []
         self.invalid: set[str] = set()
+        self.fail = False
 
     async def send(self, provider, token: str, title: str, body: str) -> PushSendResult:
+        if self.fail:
+            return PushSendResult.FAILED
         if token in self.invalid:
             return PushSendResult.INVALID_TOKEN
         self.sent.append((token, title, body))
@@ -85,6 +88,7 @@ async def container(settings: Settings) -> AsyncIterator[Container]:
         signer=HmacUrlSigner(settings),
         insights=RuleBasedInsightsModel(),
         push=push,
+        ocr=FakeOcr(),
     )
     yield c
     await engine.dispose()
@@ -128,6 +132,7 @@ class LoggedIn:
     refresh: str
     device: DeviceKey
     phone: str
+    user: dict = field(default_factory=dict)
 
     @property
     def headers(self) -> dict[str, str]:
@@ -145,11 +150,11 @@ async def login(client: httpx.AsyncClient, container: Container, phone: str,
                 device: DeviceKey | None = None, **extra: object) -> LoggedIn:
     device = device or DeviceKey()
     r = await client.post("/v1/auth/otp",
-                          json={"phone": phone, "installation_id": device.installation_id})
-    assert r.status_code == 202, r.text
+                          json={"phone": phone, "device_id": device.installation_id})
+    assert r.status_code == 200, r.text
     r = await client.post("/v1/auth/verify", json={
         "phone": phone, "code": last_code(container),
-        "installation_id": device.installation_id, "device_public_key": device.public_b64,
+        "device_id": device.installation_id, "device_public_key": device.public_b64,
         "device_name": "Test phone", "platform": "ios", **extra,
     })
     assert r.status_code == 200, r.text
@@ -157,8 +162,50 @@ async def login(client: httpx.AsyncClient, container: Container, phone: str,
     if isinstance(container.kv, InMemoryKeyValueStore):
         container.kv.time_offset += container.settings.otp_resend_seconds + 1
     body = r.json()
-    return LoggedIn(body["access_token"], body["refresh_token"], device, phone)
+    return LoggedIn(body["access_token"], body["refresh_token"], device, phone, body["user"])
 
 
 def idem() -> dict[str, str]:
     return {"Idempotency-Key": str(uuid.uuid4())}
+
+
+async def expense(client: httpx.AsyncClient, s: LoggedIn, amount: int = 50_000,
+                  category_id: str = "food", **extra: object) -> dict:
+    r = await client.post("/v1/transactions", headers={**s.headers, **idem()}, json={
+        "type": "expense", "amount": amount, "category_id": category_id, **extra})
+    assert r.status_code == 201, r.text
+    return r.json()["transaction"]
+
+
+async def income(client: httpx.AsyncClient, s: LoggedIn, amount: int = 1_000_000,
+                 **extra: object) -> dict:
+    r = await client.post("/v1/transactions", headers={**s.headers, **idem()}, json={
+        "type": "income", "amount": amount, "category_id": "salary", **extra})
+    assert r.status_code == 201, r.text
+    return r.json()["transaction"]
+
+
+class FakeOcr:
+    """OCR provayderi o'rnida: `result` ni qaytaradi (None — o'qib bo'lmadi)."""
+
+    def __init__(self) -> None:
+        from app.domain.receipts.entities import ParsedReceipt, ReceiptItem
+
+        self.result: ParsedReceipt | None = ParsedReceipt(
+            merchant="Korzinka Chilonzor", total=86_500, occurred_at=None,
+            items=[ReceiptItem("Non", 2, 5_000), ReceiptItem("Sut", 1, 14_500)],
+            confidence=0.93)
+
+    async def read(self, image: bytes):
+        return self.result
+
+
+async def delete_account(client: httpx.AsyncClient, container: Container, s: LoggedIn) -> None:
+    """BE-1304: SMS kod bilan tasdiqlangan o'chirish."""
+    if isinstance(container.kv, InMemoryKeyValueStore):
+        container.kv.time_offset += container.settings.otp_resend_seconds + 1
+    r = await client.post("/v1/me/delete-code", headers=s.headers)
+    assert r.status_code == 200, r.text
+    r = await client.request("DELETE", "/v1/me", headers=s.headers,
+                             json={"code": last_code(container)})
+    assert r.status_code == 204, r.text
