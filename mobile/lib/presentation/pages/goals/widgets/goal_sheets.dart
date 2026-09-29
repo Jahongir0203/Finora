@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
@@ -64,11 +65,13 @@ class _GoalFundSheetState extends State<GoalFundSheet> {
   Future<void> _save() async {
     final finance = context.read<FinanceCubit>().facade;
     final amount = _amount;
-    final updated = await finance.moveGoalMoney(
-      widget.goal.id,
-      widget.withdraw ? -amount : amount,
+    final updated = await apiCall(
+      () => finance.moveGoalMoney(
+        widget.goal.id,
+        widget.withdraw ? -amount : amount,
+      ),
     );
-    if (!mounted) return;
+    if (updated == null || !mounted) return;
     Navigator.of(context).pop();
     if (!widget.withdraw && updated.reached && !widget.goal.reached) {
       AppToast.success(Words.goalReached.str);
@@ -84,9 +87,9 @@ class _GoalFundSheetState extends State<GoalFundSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
-    final account = context.watch<FinanceCubit>().state.accounts.firstWhere(
-      (a) => a.isMain,
-    );
+    final accounts = context.watch<FinanceCubit>().state.accounts;
+    final account =
+        accounts.where((a) => a.isMain).firstOrNull ?? accounts.firstOrNull;
     final style = AppTypography.displayLarge.copyWith(
       height: 1.2,
       color: c.textPrimary,
@@ -140,7 +143,7 @@ class _GoalFundSheetState extends State<GoalFundSheet> {
           onAdd: (v) => setSpacedAmount(_controller, _amount + v),
         ),
         const SizedBox(height: AppSpacing.lg),
-        Container(
+        if (account != null) Container(
           padding: const .symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: .circular(AppRadius.lg),
@@ -166,7 +169,9 @@ class _GoalFundSheetState extends State<GoalFundSheet> {
                       style: context.textStyles.bodyMedium,
                     ),
                     Text(
-                      '${account.bank} ${_title(account.network)} •••• ${account.last4}',
+                      account.isCard
+                          ? '${account.bank} ${_title(account.network)} •••• ${account.last4}'
+                          : account.bank,
                       style: context.textStyles.caption,
                     ),
                   ],
@@ -270,7 +275,8 @@ class GoalDeleteSheet extends StatelessWidget {
                   final router = context.router;
                   final finance = context.read<FinanceCubit>().facade;
                   Navigator.of(context).pop();
-                  await finance.deleteGoal(goal.id);
+                  // The dialog text already says the savings go back.
+                  if (!await apiRun(() => finance.deleteGoal(goal.id))) return;
                   router.maybePop();
                   AppToast.success(Words.goalDeleted.str);
                 },

@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
 import 'package:finora/common/theme/core/functions.dart';
@@ -39,7 +40,7 @@ class _NewReminderSheetState extends State<NewReminderSheet> {
   static const _categoryIds = [
     'bills',
     'housing',
-    'subscriptions',
+    'subs',
     'transport',
     'health',
   ];
@@ -69,18 +70,21 @@ class _NewReminderSheetState extends State<NewReminderSheet> {
   }
 
   Future<void> _save() async {
-    await context.read<FinanceCubit>().facade.addReminder(
-      Reminder(
-        id: '',
-        title: _title.text.trim(),
-        categoryId: _categoryId,
-        amount: _amountValue,
-        dueDate: _today.add(Duration(days: _dayIndex)),
-        repeat: _repeat,
-        notify: _notify,
+    final finance = context.read<FinanceCubit>().facade;
+    final ok = await apiRun(
+      () => finance.addReminder(
+        Reminder(
+          id: '',
+          title: _title.text.trim(),
+          categoryId: _categoryId,
+          amount: _amountValue,
+          dueDate: _today.add(Duration(days: _dayIndex)),
+          repeat: _repeat,
+          notify: _notify,
+        ),
       ),
     );
-    if (!mounted) return;
+    if (!ok || !mounted) return;
     Navigator.of(context).pop();
     AppToast.success(Words.reminderSet.str);
   }

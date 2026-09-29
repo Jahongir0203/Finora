@@ -8,6 +8,7 @@ import 'package:finora/common/widgets/app_template_text.dart';
 import 'package:finora/common/widgets/app_toast.dart';
 import 'package:finora/common/words/words.dart';
 import 'package:finora/di.dart';
+import 'package:finora/domain/models/auth/verify_result.dart';
 import 'package:finora/presentation/pages/auth/widgets/auth_back_button.dart';
 import 'package:finora/presentation/routes/app_router.dart';
 import 'package:flutter/cupertino.dart';
@@ -24,12 +25,22 @@ import 'widgets/otp_boxes.dart';
 class VerifyCodePage extends StatelessWidget implements AutoRouteWrapper {
   /// E.164: `+998901234567`.
   final String phone;
+  final bool pinReset;
 
-  const VerifyCodePage({super.key, required this.phone});
+  /// `POST /auth/otp` answer from Sign in.
+  final OtpSent? sent;
+
+  const VerifyCodePage({
+    super.key,
+    required this.phone,
+    this.pinReset = false,
+    this.sent,
+  });
 
   @override
   Widget wrappedRoute(BuildContext context) => BlocProvider(
-    create: (_) => di<VerifyCodeCubit>()..init(phone),
+    create: (_) =>
+        di<VerifyCodeCubit>()..init(phone, pinReset: pinReset, sent: sent),
     child: this,
   );
 
@@ -58,9 +69,12 @@ class _VerifyCodeViewState extends State<_VerifyCodeView> {
   }
 
   void _listen(BuildContext context, VerifyCodeState state) {
-    if (state.result != null) {
+    final result = state.result;
+    if (result != null) {
       AppToast.success(Words.signedIn.str);
-      context.router.replaceAll([CreatePinRoute()]);
+      context.router.replaceAll([
+        CreatePinRoute(askBalance: !result.balanceSet),
+      ]);
     }
   }
 
@@ -82,7 +96,12 @@ class _VerifyCodeViewState extends State<_VerifyCodeView> {
           ),
           BlocListener<VerifyCodeCubit, VerifyCodeState>(
             listenWhen: (a, b) => a.failureTick != b.failureTick,
-            listener: (_, _) => AppToast.error(Words.happenError.str),
+            listener: (_, state) =>
+                AppToast.error(state.failureMessage ?? Words.happenError.str),
+          ),
+          BlocListener<VerifyCodeCubit, VerifyCodeState>(
+            listenWhen: (a, b) => a.expiredTick != b.expiredTick,
+            listener: (_, _) => AppToast.error(Words.codeExpired.str),
           ),
           BlocListener<VerifyCodeCubit, VerifyCodeState>(
             listenWhen: (a, b) => a.resentTick != b.resentTick,
@@ -114,6 +133,7 @@ class _VerifyCodeViewState extends State<_VerifyCodeView> {
                               subtitle: _SentTo(
                                 phone: state.phone,
                                 change: _change,
+                                telegram: state.telegramBotUrl != null,
                               ),
                             ),
                             AppShake(
@@ -127,7 +147,11 @@ class _VerifyCodeViewState extends State<_VerifyCodeView> {
                                 showCursor: state.canType,
                               ),
                             ),
-                            _Status(state: state, onResend: cubit.resend),
+                            _Status(
+                              state: state,
+                              onResend: cubit.resend,
+                              onSms: () => cubit.resend(sms: true),
+                            ),
                             const Spacer(),
                             NumericKeypad(
                               enabled: state.canType,
@@ -154,7 +178,14 @@ class _SentTo extends StatelessWidget {
   final String phone;
   final GestureRecognizer change;
 
-  const _SentTo({required this.phone, required this.change});
+  /// The code went to the Telegram bot if the number is linked there.
+  final bool telegram;
+
+  const _SentTo({
+    required this.phone,
+    required this.change,
+    required this.telegram,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -162,17 +193,20 @@ class _SentTo extends StatelessWidget {
 
     return Text.rich(
       TextSpan(
-        children: templateSpans(Words.sentBySms.str, {
-          'phone': TextSpan(
-            text: phone.toPhone(),
-            style: TextStyle(fontWeight: .w600, color: c.textPrimary),
-          ),
-          'change': TextSpan(
-            text: Words.change.str,
-            recognizer: change,
-            style: TextStyle(fontWeight: .w600, color: c.primaryText),
-          ),
-        }),
+        children: templateSpans(
+          (telegram ? Words.sentByTelegramOrSms : Words.sentBySms).str,
+          {
+            'phone': TextSpan(
+              text: phone.toPhone(),
+              style: TextStyle(fontWeight: .w600, color: c.textPrimary),
+            ),
+            'change': TextSpan(
+              text: Words.change.str,
+              recognizer: change,
+              style: TextStyle(fontWeight: .w600, color: c.primaryText),
+            ),
+          },
+        ),
       ),
     );
   }
@@ -182,7 +216,14 @@ class _Status extends StatelessWidget {
   final VerifyCodeState state;
   final VoidCallback onResend;
 
-  const _Status({required this.state, required this.onResend});
+  /// Shown when the code may have gone to Telegram.
+  final VoidCallback onSms;
+
+  const _Status({
+    required this.state,
+    required this.onResend,
+    required this.onSms,
+  });
 
   static String _mmss(int seconds) =>
       '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
@@ -235,6 +276,18 @@ class _Status extends StatelessWidget {
         spacing: AppSpacing.xs,
         children: [
           main,
+          if (state.telegramBotUrl != null && state.canResend)
+            GestureDetector(
+              onTap: state.isResending ? null : onSms,
+              behavior: HitTestBehavior.opaque,
+              child: Text(
+                Words.sendBySms.str,
+                style: base.copyWith(
+                  fontWeight: .w600,
+                  color: state.isResending ? c.textTertiary : c.primaryText,
+                ),
+              ),
+            ),
           if (state.attemptsLeft != null && state.phase != .locked)
             Text(
               Words.incorrectCode.tr(args: ['${state.attemptsLeft}']),

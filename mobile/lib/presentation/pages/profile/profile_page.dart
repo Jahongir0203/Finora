@@ -1,3 +1,4 @@
+import 'package:finora/domain/facades/profile_facade.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
@@ -39,7 +40,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _logout() async {
     await di<SessionService>().signOut();
     if (!mounted) return;
-    context.router.replaceAll([const SignInRoute()]);
+    context.router.replaceAll([SignInRoute()]);
   }
 
   Future<void> _open(PageRouteInfo route) async {
@@ -168,9 +169,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         large: true,
                         value: isDark,
                         semanticLabel: Words.darkMode.str,
-                        onChanged: (v) => context.read<ThemeCubit>().change(
-                          v ? ThemeMode.dark : ThemeMode.light,
-                        ),
+                        onChanged: (v) {
+                          context.read<ThemeCubit>().change(
+                            v ? ThemeMode.dark : ThemeMode.light,
+                          );
+                          di<ProfileFacade>()
+                              .saveSettings(theme: v ? 'dark' : 'light')
+                              .catchError((_) {});
+                        },
                       ),
                     ),
                   ],

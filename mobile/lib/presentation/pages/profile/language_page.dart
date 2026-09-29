@@ -1,3 +1,5 @@
+import 'package:finora/di.dart';
+import 'package:finora/domain/facades/profile_facade.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/common/theme/core/functions.dart';
@@ -46,6 +48,10 @@ class LanguagePage extends StatelessWidget {
     // TODO: add translations for Uzbek Cyrillic, Kazakh and Turkish.
     if (locale == null) return AppToast.info(Words.soon.str);
     await context.setLocale(locale);
+    // Server texts (errors, push, FAQ) follow the chosen language.
+    di<ProfileFacade>()
+        .saveSettings(language: locale.languageCode)
+        .catchError((_) {});
     AppToast.success(Words.languageSet.tr(args: [lang.name]));
   }
 

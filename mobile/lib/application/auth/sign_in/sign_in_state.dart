@@ -12,6 +12,9 @@ abstract class SignInState with _$SignInState {
     /// Incremented on each failed submit to replay the shake animation.
     @Default(0) int shakeTick,
     @Default(VarStatus()) VarStatus status,
+
+    /// Set on success; the code screen reads its resend timer.
+    OtpSent? sent,
   }) = _Initial;
 
   bool get isValid => digits.length == SignInCubit.phoneLength;

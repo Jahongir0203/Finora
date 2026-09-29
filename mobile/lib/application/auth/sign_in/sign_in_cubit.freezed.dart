@@ -16,7 +16,8 @@ mixin _$SignInState {
 
 /// National number without `+998`, digits only (max 9).
  String get digits; bool get showError;/// Incremented on each failed submit to replay the shake animation.
- int get shakeTick; VarStatus get status;
+ int get shakeTick; VarStatus get status;/// Set on success; the code screen reads its resend timer.
+ OtpSent? get sent;
 /// Create a copy of SignInState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,16 +28,16 @@ $SignInStateCopyWith<SignInState> get copyWith => _$SignInStateCopyWithImpl<Sign
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SignInState&&(identical(other.digits, digits) || other.digits == digits)&&(identical(other.showError, showError) || other.showError == showError)&&(identical(other.shakeTick, shakeTick) || other.shakeTick == shakeTick)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SignInState&&(identical(other.digits, digits) || other.digits == digits)&&(identical(other.showError, showError) || other.showError == showError)&&(identical(other.shakeTick, shakeTick) || other.shakeTick == shakeTick)&&(identical(other.status, status) || other.status == status)&&(identical(other.sent, sent) || other.sent == sent));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,digits,showError,shakeTick,status);
+int get hashCode => Object.hash(runtimeType,digits,showError,shakeTick,status,sent);
 
 @override
 String toString() {
-  return 'SignInState(digits: $digits, showError: $showError, shakeTick: $shakeTick, status: $status)';
+  return 'SignInState(digits: $digits, showError: $showError, shakeTick: $shakeTick, status: $status, sent: $sent)';
 }
 
 
@@ -47,7 +48,7 @@ abstract mixin class $SignInStateCopyWith<$Res>  {
   factory $SignInStateCopyWith(SignInState value, $Res Function(SignInState) _then) = _$SignInStateCopyWithImpl;
 @useResult
 $Res call({
- String digits, bool showError, int shakeTick, VarStatus status
+ String digits, bool showError, int shakeTick, VarStatus status, OtpSent? sent
 });
 
 
@@ -64,13 +65,14 @@ class _$SignInStateCopyWithImpl<$Res>
 
 /// Create a copy of SignInState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? digits = null,Object? showError = null,Object? shakeTick = null,Object? status = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? digits = null,Object? showError = null,Object? shakeTick = null,Object? status = null,Object? sent = freezed,}) {
   return _then(_self.copyWith(
 digits: null == digits ? _self.digits : digits // ignore: cast_nullable_to_non_nullable
 as String,showError: null == showError ? _self.showError : showError // ignore: cast_nullable_to_non_nullable
 as bool,shakeTick: null == shakeTick ? _self.shakeTick : shakeTick // ignore: cast_nullable_to_non_nullable
 as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as VarStatus,
+as VarStatus,sent: freezed == sent ? _self.sent : sent // ignore: cast_nullable_to_non_nullable
+as OtpSent?,
   ));
 }
 
@@ -155,10 +157,10 @@ return initial(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String digits,  bool showError,  int shakeTick,  VarStatus status)?  initial,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String digits,  bool showError,  int shakeTick,  VarStatus status,  OtpSent? sent)?  initial,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
-return initial(_that.digits,_that.showError,_that.shakeTick,_that.status);case _:
+return initial(_that.digits,_that.showError,_that.shakeTick,_that.status,_that.sent);case _:
   return orElse();
 
 }
@@ -176,10 +178,10 @@ return initial(_that.digits,_that.showError,_that.shakeTick,_that.status);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String digits,  bool showError,  int shakeTick,  VarStatus status)  initial,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String digits,  bool showError,  int shakeTick,  VarStatus status,  OtpSent? sent)  initial,}) {final _that = this;
 switch (_that) {
 case _Initial():
-return initial(_that.digits,_that.showError,_that.shakeTick,_that.status);case _:
+return initial(_that.digits,_that.showError,_that.shakeTick,_that.status,_that.sent);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +198,10 @@ return initial(_that.digits,_that.showError,_that.shakeTick,_that.status);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String digits,  bool showError,  int shakeTick,  VarStatus status)?  initial,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String digits,  bool showError,  int shakeTick,  VarStatus status,  OtpSent? sent)?  initial,}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
-return initial(_that.digits,_that.showError,_that.shakeTick,_that.status);case _:
+return initial(_that.digits,_that.showError,_that.shakeTick,_that.status,_that.sent);case _:
   return null;
 
 }
@@ -211,7 +213,7 @@ return initial(_that.digits,_that.showError,_that.shakeTick,_that.status);case _
 
 
 class _Initial extends SignInState {
-  const _Initial({this.digits = '', this.showError = false, this.shakeTick = 0, this.status = const VarStatus()}): super._();
+  const _Initial({this.digits = '', this.showError = false, this.shakeTick = 0, this.status = const VarStatus(), this.sent}): super._();
   
 
 /// National number without `+998`, digits only (max 9).
@@ -220,6 +222,8 @@ class _Initial extends SignInState {
 /// Incremented on each failed submit to replay the shake animation.
 @override@JsonKey() final  int shakeTick;
 @override@JsonKey() final  VarStatus status;
+/// Set on success; the code screen reads its resend timer.
+@override final  OtpSent? sent;
 
 /// Create a copy of SignInState
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +235,16 @@ _$InitialCopyWith<_Initial> get copyWith => __$InitialCopyWithImpl<_Initial>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Initial&&(identical(other.digits, digits) || other.digits == digits)&&(identical(other.showError, showError) || other.showError == showError)&&(identical(other.shakeTick, shakeTick) || other.shakeTick == shakeTick)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Initial&&(identical(other.digits, digits) || other.digits == digits)&&(identical(other.showError, showError) || other.showError == showError)&&(identical(other.shakeTick, shakeTick) || other.shakeTick == shakeTick)&&(identical(other.status, status) || other.status == status)&&(identical(other.sent, sent) || other.sent == sent));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,digits,showError,shakeTick,status);
+int get hashCode => Object.hash(runtimeType,digits,showError,shakeTick,status,sent);
 
 @override
 String toString() {
-  return 'SignInState.initial(digits: $digits, showError: $showError, shakeTick: $shakeTick, status: $status)';
+  return 'SignInState.initial(digits: $digits, showError: $showError, shakeTick: $shakeTick, status: $status, sent: $sent)';
 }
 
 
@@ -251,7 +255,7 @@ abstract mixin class _$InitialCopyWith<$Res> implements $SignInStateCopyWith<$Re
   factory _$InitialCopyWith(_Initial value, $Res Function(_Initial) _then) = __$InitialCopyWithImpl;
 @override @useResult
 $Res call({
- String digits, bool showError, int shakeTick, VarStatus status
+ String digits, bool showError, int shakeTick, VarStatus status, OtpSent? sent
 });
 
 
@@ -268,13 +272,14 @@ class __$InitialCopyWithImpl<$Res>
 
 /// Create a copy of SignInState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? digits = null,Object? showError = null,Object? shakeTick = null,Object? status = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? digits = null,Object? showError = null,Object? shakeTick = null,Object? status = null,Object? sent = freezed,}) {
   return _then(_Initial(
 digits: null == digits ? _self.digits : digits // ignore: cast_nullable_to_non_nullable
 as String,showError: null == showError ? _self.showError : showError // ignore: cast_nullable_to_non_nullable
 as bool,shakeTick: null == shakeTick ? _self.shakeTick : shakeTick // ignore: cast_nullable_to_non_nullable
 as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as VarStatus,
+as VarStatus,sent: freezed == sent ? _self.sent : sent // ignore: cast_nullable_to_non_nullable
+as OtpSent?,
   ));
 }
 

@@ -79,6 +79,7 @@ abstract class Words {
   static const String clearFilters = 'clear_filters';
   static const String clearNotifications = 'clear_notifications';
   static const String close = 'close';
+  static const String codeExpired = 'code_expired';
   static const String codeResent = 'code_resent';
   static const String color = 'color';
   static const String continueAction = 'continue_action';
@@ -120,6 +121,7 @@ abstract class Words {
   static const String expenses = 'expenses';
   static const String exportAs = 'export_as';
   static const String exportData = 'export_data';
+  static const String exportFailed = 'export_failed';
   static const String exportReport = 'export_report';
   static const String finoraAi = 'finora_ai';
   static const String flash = 'flash';
@@ -167,6 +169,7 @@ abstract class Words {
   static const String languageSet = 'language_set';
   static const String legalText = 'legal_text';
   static const String liveChat = 'live_chat';
+  static const String loadMore = 'load_more';
   static const String lockNow = 'lock_now';
   static const String lockedAfter = 'locked_after';
   static const String locksIn = 'locks_in';
@@ -305,7 +308,9 @@ abstract class Words {
   static const String selectFromCamera = 'select_from_camera';
   static const String selectFromGallery = 'select_from_gallery';
   static const String send = 'send';
+  static const String sendBySms = 'send_by_sms';
   static const String sentBySms = 'sent_by_sms';
+  static const String sentByTelegramOrSms = 'sent_by_telegram_or_sms';
   static const String septemberBudgets = 'september_budgets';
   static const String serverError = 'server_error';
   static const String setALimit = 'set_a_limit';

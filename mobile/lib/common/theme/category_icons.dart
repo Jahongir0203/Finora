@@ -24,6 +24,8 @@ abstract final class CategoryIcons {
     'smartphone': LucideIcons.smartphone,
     'briefcase': LucideIcons.briefcase,
     'arrow-down-left': LucideIcons.arrowDownLeft,
+    'arrow-left-right': LucideIcons.arrowLeftRight,
+    'trending-up': LucideIcons.trendingUp,
     'piggy-bank': LucideIcons.piggyBank,
     'laptop': LucideIcons.laptop,
     'heart': LucideIcons.heart,

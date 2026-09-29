@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
@@ -32,6 +33,15 @@ class ActivityPage extends StatefulWidget {
 class _ActivityPageState extends State<ActivityPage> {
   final _search = TextEditingController();
   var _filter = ActivityFilter.all;
+  var _loadingMore = false;
+
+  Future<void> _loadMore() async {
+    if (_loadingMore) return;
+    setState(() => _loadingMore = true);
+    final finance = context.read<FinanceCubit>().facade;
+    await apiRun(finance.loadMoreTransactions);
+    if (mounted) setState(() => _loadingMore = false);
+  }
 
   @override
   void dispose() {
@@ -152,6 +162,18 @@ class _ActivityPageState extends State<ActivityPage> {
                           total: items.fold<num>(0, (s, t) => s + t.amount),
                           transactions: items,
                           firstIndex: (index += items.length) - items.length,
+                        ),
+                      ],
+                      if (snapshot.hasMoreTransactions && list.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        Center(
+                          child: AppButton.secondary(
+                            text: Words.loadMore.str,
+                            size: AppButtonSize.small,
+                            expanded: false,
+                            isLoading: _loadingMore,
+                            onPressed: _loadMore,
+                          ),
                         ),
                       ],
                       if (snapshot.transactions.isEmpty)

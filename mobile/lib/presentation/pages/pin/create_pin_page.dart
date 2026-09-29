@@ -4,6 +4,7 @@ import 'package:finora/common/widgets/app_shake.dart';
 import 'package:finora/common/widgets/app_toast.dart';
 import 'package:finora/common/words/words.dart';
 import 'package:finora/di.dart';
+import 'package:finora/domain/facades/auth_facade.dart';
 import 'package:finora/infrastructure/services/security/pin_service.dart';
 import 'package:finora/presentation/pages/auth/widgets/auth_back_button.dart';
 import 'package:finora/presentation/routes/app_router.dart';
@@ -22,7 +23,10 @@ class CreatePinPage extends StatefulWidget {
   /// Profile → Security → Change PIN.
   final bool change;
 
-  const CreatePinPage({super.key, this.change = false});
+  /// Show Starting balance next (skipped when it's already set).
+  final bool askBalance;
+
+  const CreatePinPage({super.key, this.change = false, this.askBalance = true});
 
   @override
   State<CreatePinPage> createState() => _CreatePinPageState();
@@ -99,10 +103,14 @@ class _CreatePinPageState extends State<CreatePinPage> {
     if (widget.change) {
       AppToast.success(Words.pinChanged.str);
       context.router.maybePop();
-    } else {
-      AppToast.success(Words.pinCreated.str);
-      context.router.replaceAll([const StartingBalanceRoute()]);
+      return;
     }
+    // The server only records it; the PIN itself never leaves the device.
+    di<AuthFacade>().pinCreated().ignore();
+    AppToast.success(Words.pinCreated.str);
+    context.router.replaceAll([
+      if (widget.askBalance) const StartingBalanceRoute() else const MainRoute(),
+    ]);
   }
 
   void _back() {

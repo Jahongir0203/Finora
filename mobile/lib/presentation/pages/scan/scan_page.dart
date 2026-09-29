@@ -1,20 +1,26 @@
 import 'dart:math' as math;
 
 import 'package:auto_route/auto_route.dart';
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:finora/common/theme/core/functions.dart';
 import 'package:finora/common/widgets/app_pressable.dart';
-import 'package:finora/common/widgets/app_toast.dart';
 import 'package:finora/common/words/words.dart';
+import 'package:finora/di.dart';
+import 'package:finora/domain/facades/receipts_facade.dart';
 import 'package:finora/presentation/pages/activity/widgets/add_transaction_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'widgets/scan_sheets.dart';
 
 /// Receipt / QR scanner (docs/screens/ACTIVITY_SCAN.md §5). Always dark.
 ///
-/// TODO: replace the placeholder viewport with `CameraPreview` (camera) and
-/// `MobileScanner` (QR), and run OCR on the captured photo.
+/// The shutter opens the system camera; the photo is read by the server
+/// (`POST /receipts/scan`).
+///
+/// TODO: live `CameraPreview` and a QR decoder (`mobile_scanner`) →
+/// `POST /receipts/qr`.
 @RoutePage()
 class ScanPage extends StatefulWidget {
   const ScanPage({super.key});
@@ -26,6 +32,7 @@ class ScanPage extends StatefulWidget {
 class _ScanPageState extends State<ScanPage> {
   var _qr = false;
   var _flash = false;
+  var _busy = false;
 
   static const _overlay = SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
@@ -40,8 +47,32 @@ class _ScanPageState extends State<ScanPage> {
     if (_qr) {
       QrErrorSheet.show(context, onManual: _manual);
     } else {
-      ReceiptResultSheet.show(context);
+      _pick(ImageSource.camera);
     }
+  }
+
+  /// Photo → server OCR → "Receipt scanned". The photo is not kept on the
+  /// device (docs/security/03-mobile.md §8).
+  Future<void> _pick(ImageSource source) async {
+    if (_busy) return;
+    final photo = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 2000,
+      imageQuality: 85,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (photo == null || !mounted) return;
+    setState(() => _busy = true);
+    final bytes = await photo.readAsBytes();
+    final receipt = await apiCall(
+      () => di<ReceiptsFacade>().scan(
+        bytes,
+        contentType: photo.mimeType ?? 'image/jpeg',
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (receipt != null) ReceiptResultSheet.show(context, receipt);
   }
 
   /// Keyboard → back to Home and open New transaction.
@@ -91,7 +122,18 @@ class _ScanPageState extends State<ScanPage> {
                   ],
                 ),
                 _ModeSwitch(qr: _qr, onChanged: (v) => setState(() => _qr = v)),
-                Expanded(child: _Viewport(qr: _qr)),
+                Expanded(
+                  child: Stack(
+                    alignment: .center,
+                    children: [
+                      _Viewport(qr: _qr),
+                      if (_busy)
+                        const CircularProgressIndicator(
+                          color: AppPalette.primary500,
+                        ),
+                    ],
+                  ),
+                ),
                 Text(
                   _qr ? Words.scanHintQr.str : Words.scanHintReceipt.str,
                   textAlign: .center,
@@ -107,7 +149,7 @@ class _ScanPageState extends State<ScanPage> {
                       icon: FinoraIcons.image,
                       size: 52,
                       semanticLabel: Words.gallery.str,
-                      onTap: () => AppToast.info(Words.soon.str),
+                      onTap: () => _pick(ImageSource.gallery),
                     ),
                     _Shutter(onTap: _shutter),
                     _RoundButton(

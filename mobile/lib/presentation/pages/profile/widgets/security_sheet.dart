@@ -1,3 +1,5 @@
+import 'package:finora/domain/facades/profile_facade.dart';
+import 'package:finora/common/helpers/api_call.dart';
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
@@ -53,6 +55,10 @@ class _SecuritySheetState extends State<SecuritySheet> {
   }
 
   Future<void> _setMinutes(int m) async {
+    final ok = await apiRun(
+      () => di<ProfileFacade>().saveSettings(autoLockMinutes: m),
+    );
+    if (!ok) return;
     await _autoLock.setMinutes(m);
     if (!mounted) return;
     setState(() {});
@@ -140,6 +146,12 @@ class _SecuritySheetState extends State<SecuritySheet> {
                       value: _cache.faceIdEnabled,
                       semanticLabel: Words.unlockWithFaceId.str,
                       onChanged: (v) async {
+                        final ok = await apiRun(
+                          () => di<ProfileFacade>().saveSettings(
+                            biometricEnabled: v,
+                          ),
+                        );
+                        if (!ok) return;
                         await _cache.setFaceIdEnabled(v);
                         setState(() {});
                       },

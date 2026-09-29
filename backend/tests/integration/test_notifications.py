@@ -64,6 +64,23 @@ async def test_notifications_are_private_and_mark_read(client, container):
     assert page["items"][0]["read"] is True and page["unread"] == 0
 
 
+async def test_delete_one_notification(client, container):
+    a = await login(client, container, PHONE)
+    await login(client, container, PHONE, DeviceKey())
+    other = await login(client, container, "+998904000002")
+    nid = (await client.get("/v1/notifications", headers=a.headers)).json()["items"][0]["id"]
+
+    # Begona bildirishnomani o'chirib bo'lmaydi (IDOR).
+    r = await client.delete(f"/v1/notifications/{nid}", headers=other.headers)
+    assert r.status_code == 404
+    r = await client.delete(f"/v1/notifications/{nid}", headers=a.headers)
+    assert r.status_code == 204
+    page = (await client.get("/v1/notifications", headers=a.headers)).json()
+    assert page["items"] == [] and page["unread"] == 0
+    r = await client.delete(f"/v1/notifications/{nid}", headers=a.headers)
+    assert r.status_code == 404
+
+
 async def test_push_token_moves_between_accounts_on_same_phone(client, container):
     a = await login(client, container, PHONE)
     await _register(client, a, FCM_A)

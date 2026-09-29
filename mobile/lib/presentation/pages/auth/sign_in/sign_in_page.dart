@@ -25,18 +25,23 @@ import 'widgets/phone_field.dart';
 /// Sign in with phone number (docs/AUTH_SCREENS.md §4).
 @RoutePage()
 class SignInPage extends StatelessWidget implements AutoRouteWrapper {
-  const SignInPage({super.key});
+  /// "Forgot PIN": the code is verified with `purpose: pin_reset`.
+  final bool pinReset;
+
+  const SignInPage({super.key, this.pinReset = false});
 
   @override
   Widget wrappedRoute(BuildContext context) =>
       BlocProvider(create: (_) => di<SignInCubit>(), child: this);
 
   @override
-  Widget build(BuildContext context) => const _SignInView();
+  Widget build(BuildContext context) => _SignInView(pinReset: pinReset);
 }
 
 class _SignInView extends StatefulWidget {
-  const _SignInView();
+  final bool pinReset;
+
+  const _SignInView({required this.pinReset});
 
   @override
   State<_SignInView> createState() => _SignInViewState();
@@ -67,15 +72,23 @@ class _SignInViewState extends State<_SignInView> {
     if (state.status.isSuccess) {
       cubit.resetStatus();
       FocusManager.instance.primaryFocus?.unfocus();
-      await context.router.push(VerifyCodeRoute(phone: state.phone));
+      await context.router.push(
+        VerifyCodeRoute(
+          phone: state.phone,
+          pinReset: widget.pinReset,
+          sent: state.sent,
+        ),
+      );
     } else if (state.status.isFail) {
       cubit.resetStatus();
       final failure = state.status.error;
-      AppToast.error(
-        failure is RateLimitedFailure
-            ? Words.tooManyAttempts.tr(args: ['${failure.minutes}'])
-            : Words.happenError.str,
-      );
+      AppToast.error(switch (failure) {
+        RateLimitedFailure() => Words.tooManyAttempts.tr(
+          args: ['${failure.minutes}'],
+        ),
+        UnknownAuthFailure(:final message?) => message,
+        _ => Words.happenError.str,
+      });
     }
   }
 

@@ -6,6 +6,24 @@ Katta ishlar uchun batafsil hujjat alohida fayl sifatida shu papkaga yoziladi va
 
 ---
 
+## 2026-09-29 — Bitta bildirishnomani o'chirish (mobil ulanishi uchun)
+
+**Nima qilindi va nega.** Mobil ilova fake ma'lumotdan haqiqiy API'ga o'tkazildi. Bildirishnomalar
+ekranida bittasini surib o'chirish (swipe) bor, lekin backendda faqat hammasini tozalash
+(`DELETE /v1/notifications`) bor edi. Qo'shildi: `DELETE /v1/notifications/{id}` → `204`.
+
+- Soft delete (`deleted_at`), o'qilmagan bo'lsa o'qilgan deb belgilanadi: `unread` hisobi to'g'ri qoladi.
+- Begona yoki allaqachon o'chirilgan bildirishnoma → `404 not_found` (IDOR, qayta o'chirish).
+
+**Muhim qaror.** "Undo" uchun restore endpointi qo'shilmadi: mobil o'chirish so'rovini Undo oynasi
+(5 s) tugagandan keyin yuboradi. Server tomonda "o'chirilganni qaytarish" holati kerak bo'lmaydi.
+
+**Fayllar:** `app/domain/notifications/repository.py`, `app/infrastructure/db/repositories/notifications.py`,
+`app/application/notifications/use_cases.py`, `app/presentation/api/v1/notifications.py`,
+`tests/integration/test_notifications.py` (+1 test), `docs/backend/openapi.json`. Testlar: 154 o'tdi.
+
+---
+
 ## 2026-09-29 — OTP o'z Telegram botimiz orqali
 
 **Nima qilindi va nega.** SMS pullik; Telegram'dagi bot bepul. Foydalanuvchi `@bot`da "Start" →

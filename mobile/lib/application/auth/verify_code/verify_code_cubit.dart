@@ -23,9 +23,15 @@ class VerifyCodeCubit extends Cubit<VerifyCodeState> {
 
   VerifyCodeCubit(this._auth) : super(const .initial());
 
-  void init(String phone) {
-    emit(state.copyWith(phone: phone));
-    _startCountdown();
+  void init(String phone, {bool pinReset = false, OtpSent? sent}) {
+    emit(
+      state.copyWith(
+        phone: phone,
+        pinReset: pinReset,
+        telegramBotUrl: sent?.telegramBotUrl,
+      ),
+    );
+    _startCountdown(sent?.resendAfter ?? resendSeconds);
   }
 
   void input(String digit) {
@@ -63,11 +69,12 @@ class VerifyCodeCubit extends Cubit<VerifyCodeState> {
     emit(state.copyWith(code: ''));
   }
 
-  Future<void> resend() async {
+  /// [sms] = "Send by SMS" instead of the Telegram bot.
+  Future<void> resend({bool sms = false}) async {
     if (!state.canResend) return;
 
     emit(state.copyWith(isResending: true));
-    final result = await _auth.requestOtp(state.phone);
+    final result = await _auth.requestOtp(state.phone, sms: sms);
     if (isClosed) return;
 
     result.fold(
@@ -75,7 +82,7 @@ class VerifyCodeCubit extends Cubit<VerifyCodeState> {
         emit(state.copyWith(isResending: false));
         _handleFailure(failure);
       },
-      (_) {
+      (sent) {
         emit(
           state.copyWith(
             isResending: false,
@@ -84,14 +91,18 @@ class VerifyCodeCubit extends Cubit<VerifyCodeState> {
             resentTick: state.resentTick + 1,
           ),
         );
-        _startCountdown();
+        _startCountdown(sent.resendAfter);
       },
     );
   }
 
   Future<void> _verify(String code) async {
     emit(state.copyWith(phase: .verifying));
-    final result = await _auth.verifyOtp(phone: state.phone, code: code);
+    final result = await _auth.verifyOtp(
+      phone: state.phone,
+      code: code,
+      pinReset: state.pinReset,
+    );
     if (isClosed) return;
 
     result.fold(_handleFailure, (value) {
@@ -128,22 +139,33 @@ class VerifyCodeCubit extends Cubit<VerifyCodeState> {
         Future.delayed(_errorHold, () {
           if (!isClosed) emit(state.copyWith(code: ''));
         });
-      case UnknownAuthFailure():
+      case ExpiredCodeFailure():
+        _timer?.cancel();
         emit(
           state.copyWith(
             phase: .input,
             code: '',
+            secondsLeft: 0,
+            expiredTick: state.expiredTick + 1,
+          ),
+        );
+      case UnknownAuthFailure(:final message):
+        emit(
+          state.copyWith(
+            phase: .input,
+            code: '',
+            failureMessage: message,
             failureTick: state.failureTick + 1,
           ),
         );
     }
   }
 
-  void _startCountdown() {
+  void _startCountdown(int seconds) {
     _timer?.cancel();
     // Count from a deadline so the timer stays correct after backgrounding.
-    final deadline = DateTime.now().add(const Duration(seconds: resendSeconds));
-    emit(state.copyWith(secondsLeft: resendSeconds));
+    final deadline = DateTime.now().add(Duration(seconds: seconds));
+    emit(state.copyWith(secondsLeft: seconds));
     _timer = Timer.periodic(const Duration(milliseconds: 250), (timer) {
       final ms = deadline.difference(DateTime.now()).inMilliseconds;
       final left = ms <= 0 ? 0 : (ms / 1000).ceil();

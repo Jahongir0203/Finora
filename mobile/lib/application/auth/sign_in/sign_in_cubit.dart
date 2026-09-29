@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:finora/application/var_status.dart';
 import 'package:finora/domain/facades/auth_facade.dart';
+import 'package:finora/domain/models/auth/verify_result.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
 
@@ -35,7 +36,7 @@ class SignInCubit extends Cubit<SignInState> {
 
     result.fold(
       (failure) => emit(state.copyWith(status: .fail(failure))),
-      (_) => emit(state.copyWith(status: .success())),
+      (sent) => emit(state.copyWith(status: .success(), sent: sent)),
     );
   }
 

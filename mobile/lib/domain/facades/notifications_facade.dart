@@ -8,8 +8,10 @@ abstract class NotificationsFacade {
 
   Future<void> markAllRead();
 
+  /// Committed after the Undo window unless [restore] is called.
   Future<void> delete(String id);
 
+  /// Committed after the Undo window unless [restore] is called.
   Future<void> clear();
 
   /// Puts back notifications removed by [clear] or [delete] (Undo).

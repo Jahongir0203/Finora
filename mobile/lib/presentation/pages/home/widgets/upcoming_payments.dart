@@ -1,3 +1,6 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:finora/application/finance/finance_cubit.dart';
+import 'package:finora/common/theme/category_icons.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:finora/common/extensions/format_extensions.dart';
 import 'package:finora/common/theme/core/functions.dart';
@@ -84,7 +87,9 @@ class _PaymentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
-    final category = AppCategory.byName(payment.category) ?? .bills;
+    final category = context.select(
+      (FinanceCubit b) => b.state.category(payment.category),
+    );
     final (due, dueColor) = dueLabel(context, payment.dueDate, DateTime.now());
 
     return SizedBox(
@@ -96,7 +101,11 @@ class _PaymentCard extends StatelessWidget {
           crossAxisAlignment: .start,
           spacing: 10,
           children: [
-            CategoryIcon.category(category, size: 36),
+            CategoryIcon(
+              icon: category?.iconData ?? FinoraIcons.bills,
+              color: category?.colorValue ?? AppPalette.catBills,
+              size: 36,
+            ),
             Column(
               crossAxisAlignment: .start,
               children: [

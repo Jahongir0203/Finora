@@ -231,6 +231,18 @@ class FinanceSnapshot {
   /// Spending per category this month (budgets).
   final Map<String, num> monthSpent;
 
+  /// All-time transactions per category (from the server).
+  final Map<String, int> transactionCounts;
+
+  /// Current balance of all accounts (computed by the server).
+  final num balance;
+
+  /// False until the first load finished.
+  final bool loaded;
+
+  /// More transactions can be loaded ([FinanceFacade.loadMoreTransactions]).
+  final bool hasMoreTransactions;
+
   const FinanceSnapshot({
     required this.userName,
     required this.phone,
@@ -243,16 +255,32 @@ class FinanceSnapshot {
     required this.reminders,
     required this.accounts,
     required this.monthSpent,
+    this.transactionCounts = const {},
+    this.balance = 0,
+    this.loaded = false,
+    this.hasMoreTransactions = false,
   });
+
+  static const empty = FinanceSnapshot(
+    userName: '',
+    phone: '',
+    isNew: false,
+    balanceSet: false,
+    startingBalance: 0,
+    categories: [],
+    transactions: [],
+    goals: [],
+    reminders: [],
+    accounts: [],
+    monthSpent: {},
+  );
 
   Category? category(String id) =>
       categories.where((e) => e.id == id).firstOrNull;
 
   Iterable<Category> get budgets => categories.where((e) => e.limit != null);
 
-  num get balance =>
-      startingBalance + transactions.fold<num>(0, (s, t) => s + t.amount);
-
   int transactionCount(String categoryId) =>
+      transactionCounts[categoryId] ??
       transactions.where((t) => t.categoryId == categoryId).length;
 }

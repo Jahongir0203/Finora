@@ -1,6 +1,5 @@
-import 'package:finora/infrastructure/services/cache/secure_cache.dart';
+import 'package:finora/infrastructure/services/http/interceptors/api_headers_interceptor.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -24,6 +23,7 @@ Future<void> setupConfigs() async {
   }
 
   await EasyLocalization.ensureInitialized();
+  await ApiHeadersInterceptor.loadTimezone();
   EasyLocalization.logger.enableBuildModes = [];
 
   EasyLoading.instance
@@ -43,7 +43,4 @@ Future<void> setupConfigs() async {
 @InjectableInit(initializerName: 'init')
 Future<void> setupDI() async {
   await di.init();
-  if (kDebugMode || AppEnv.devMode) {
-    print('TOKEN: ${await di<SecureCache>().token}');
-  }
 }

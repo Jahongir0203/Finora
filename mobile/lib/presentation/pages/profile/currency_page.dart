@@ -1,3 +1,6 @@
+import 'package:finora/common/extensions/format_extensions.dart';
+import 'package:finora/domain/facades/profile_facade.dart';
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/common/theme/core/functions.dart';
@@ -28,8 +31,9 @@ class CurrencyPage extends StatefulWidget {
 }
 
 class _CurrencyPageState extends State<CurrencyPage> {
-  // (code, symbol, name, rate in UZS; null = base)
-  static const _currencies = [
+  // (code, symbol, name, rate in UZS; null = base). Shown until the list
+  // from `GET /currencies` arrives.
+  static const _fallback = [
     ('UZS', "so'm", "Uzbek so'm", null),
     ('USD', r'$', 'US dollar', '12 650'),
     ('EUR', '€', 'Euro', '14 120'),
@@ -41,7 +45,29 @@ class _CurrencyPageState extends State<CurrencyPage> {
   ];
 
   final _cache = di<AppCache>();
+  final _profile = di<ProfileFacade>();
   final _search = TextEditingController();
+  var _currencies = _fallback;
+
+  @override
+  void initState() {
+    super.initState();
+    _profile.currencies().then((list) {
+      if (!mounted || list.isEmpty) return;
+      setState(
+        () => _currencies = [
+          for (final c in list)
+            (c.code, c.symbol, c.name, _rate(c.rateToUzs)),
+        ],
+      );
+    }, onError: (_) {});
+  }
+
+  static String? _rate(num? r) => r == null
+      ? null
+      : r >= 100
+      ? r.round().toMoney()
+      : r.toStringAsFixed(2);
 
   @override
   void dispose() {
@@ -50,7 +76,9 @@ class _CurrencyPageState extends State<CurrencyPage> {
   }
 
   Future<void> _select(String code) async {
+    if (!await apiRun(() => _profile.saveSettings(currency: code))) return;
     await _cache.setCurrency(code);
+    if (!mounted) return;
     setState(() {});
     AppToast.success(Words.primaryCurrencySet.tr(args: [code]));
   }

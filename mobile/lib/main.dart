@@ -12,6 +12,7 @@ import 'application/network_info/network_info_cubit.dart';
 import 'application/theme/theme_cubit.dart';
 import 'common/theme/themes.dart';
 import 'common/widgets/app.dart';
+import 'infrastructure/services/http/interceptors/api_headers_interceptor.dart';
 import 'di.dart';
 
 void main() {
@@ -58,6 +59,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ApiHeadersInterceptor.language = context.locale.languageCode;
     return MaterialApp.router(
       title: context.read<DeviceInfoCubit>().state.projectInfo.appName,
       debugShowCheckedModeBanner: false,

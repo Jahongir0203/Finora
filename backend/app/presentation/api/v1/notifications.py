@@ -43,6 +43,12 @@ async def mark_all_read(ctx: AuthDep, c: ContainerDep) -> CountOut:
     return CountOut(count=await _svc(c).mark_all_read(ctx))
 
 
+@router.delete("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_one(notification_id: UUID, ctx: AuthDep, c: ContainerDep) -> None:
+    """Bittasini o'chirish (swipe) — soft delete, IDOR: faqat o'ziniki."""
+    await _svc(c).delete(ctx, notification_id)
+
+
 @router.delete("", response_model=CountOut)
 async def clear(ctx: AuthDep, c: ContainerDep) -> CountOut:
     """"Clear" — soft delete."""

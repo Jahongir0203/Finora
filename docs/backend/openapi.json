@@ -8823,6 +8823,89 @@
         ]
       }
     },
+    "/v1/notifications/{notification_id}": {
+      "delete": {
+        "description": "Bittasini o'chirish (swipe) — soft delete, IDOR: faqat o'ziniki.",
+        "operationId": "delete_one_v1_notifications__notification_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Notification Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "unauthorized / token_expired / session_expired"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "not_found (begona resurs ham)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "validation_error + fields[] va boshqa kodlar"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "rate_limited + retry_after"
+          }
+        },
+        "summary": "Delete One",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/v1/notifications/{notification_id}/read": {
       "post": {
         "operationId": "mark_read_v1_notifications__notification_id__read_post",

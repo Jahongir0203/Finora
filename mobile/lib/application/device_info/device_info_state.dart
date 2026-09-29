@@ -15,5 +15,8 @@ abstract class DeviceInfoState with _$DeviceInfoState {
     /// projectInfo
     @Default(VarStatus()) VarStatus projectInfoStatus,
     required PackageInfo projectInfo,
+
+    /// "iPhone 15 Pro", "Samsung SM-S918B".
+    @Default('') String deviceName,
   }) = _Initial;
 }

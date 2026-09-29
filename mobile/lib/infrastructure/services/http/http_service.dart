@@ -6,6 +6,7 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:injectable/injectable.dart';
 
 import '../cache/dio_cache_store.dart';
+import 'interceptors/api_headers_interceptor.dart';
 import 'interceptors/connection_checker_interceptor.dart';
 import 'interceptors/my_log_interceptor.dart';
 import 'interceptors/token_interceptor.dart';
@@ -17,6 +18,7 @@ class HttpService {
   final MyLogInterceptor _logInterceptor;
   final ConnectionCheckerInterceptor _connectionCheckerInterceptor;
   final TokenInterceptor _tokenInterceptor;
+  final ApiHeadersInterceptor _headersInterceptor;
   final CacheOptions _cacheOptions;
 
   const HttpService(
@@ -25,6 +27,7 @@ class HttpService {
     this._logInterceptor,
     this._connectionCheckerInterceptor,
     this._tokenInterceptor,
+    this._headersInterceptor,
     this._cacheOptions,
   );
 
@@ -49,6 +52,7 @@ class HttpService {
     );
 
     final interceptors = [
+      _headersInterceptor,
       if (AppEnv.devMode) _aliceAdapter,
       if (AppEnv.devMode) _logInterceptor,
 

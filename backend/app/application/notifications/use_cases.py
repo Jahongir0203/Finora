@@ -55,6 +55,13 @@ class NotificationService:
             await uow.commit()
         return n
 
+    async def delete(self, ctx: AuthContext, notification_id: UUID) -> None:
+        async with self._uow as uow:
+            if not await uow.notifications.delete(ctx.user_id, notification_id,
+                                                  self._clock.now()):
+                raise NotFoundError()
+            await uow.commit()
+
     async def clear(self, ctx: AuthContext) -> int:
         async with self._uow as uow:
             n = await uow.notifications.clear(ctx.user_id, self._clock.now())
