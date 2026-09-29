@@ -6,6 +6,50 @@ Katta ishlar uchun batafsil hujjat alohida fayl sifatida shu papkaga yoziladi va
 
 ---
 
+## 2026-09-29 — OTP o'z Telegram botimiz orqali
+
+**Nima qilindi va nega.** SMS pullik; Telegram'dagi bot bepul. Foydalanuvchi `@bot`da "Start" →
+"📱 Raqamni ulashish" tugmasini bir marta bosadi, shundan keyin kirish (va akkauntni o'chirish)
+kodlari SMS o'rniga botdan keladi. Ulanmagan, bot bloklangan yoki Telegram ishlamasa — SMS.
+
+- `POST /v1/telegram/webhook` (faqat Telegram; `X-Telegram-Bot-Api-Secret-Token`, aks holda 404):
+  `/start` — ulash taklifi, kontakt — ulash, `/stop` va botni bloklash — uzish.
+- `POST /v1/auth/otp`: `channel: "auto" | "sms"` ("SMS orqali yuborish" tugmasi), javobda
+  `telegram_bot_url` (`t.me/<bot>?start=login`).
+- `telegram_links` jadvali: raqam blind index (HMAC) -> `chat_id`, raqamning o'zi saqlanmaydi.
+- Webhook o'rnatish: `python -m app.telegram_setup https://…/v1/telegram/webhook`.
+- **Polling rejimi** (lokal dev, webhook/HTTPS kerak emas): `python -m app.telegram_poll`.
+  Ishga tushganda webhook o'chiriladi; faqat bitta nusxada ishlaydi (prod'da — webhook).
+
+**Muhim qarorlar**
+
+- *Faqat o'z raqami:* `contact.user_id == from.id` tekshiriladi. Aks holda botga begona odamning
+  kontakt kartasini yuborib, uning kodini olish mumkin bo'lardi (akkauntni egallash).
+- *Javob kanalni oshkor qilmaydi:* kod Telegram'ga ketdimi yoki SMS'gami — javob bir xil
+  (02-backend 1-bo'lim: raqam Finora'da borligi bilinmasin). UI: "Kod Telegram'ga (ulangan
+  bo'lsa) yoki SMS orqali yuborildi".
+- *Bitta Telegram akkaunt — bitta raqam:* raqam almashsa eski bog'lanish o'chadi.
+- *Faqat shaxsiy chat;* guruhdagi xabarlar e'tiborsiz. Limitlar kanalga bog'liq emas.
+- Akkaunt o'chirilganda bog'lanish ham o'chiriladi (shaxsiy ma'lumot).
+
+**Fayllar:** yangi — `app/{domain,application,infrastructure}/telegram/`,
+`app/infrastructure/db/repositories/telegram.py`, `app/presentation/api/v1/telegram.py`,
+`app/telegram_setup.py`, `app/telegram_poll.py`, `migrations/versions/20260929_c3d8f1a0b2e4_telegram_links.py`,
+`tests/integration/test_telegram.py`; o'zgargan — `app/application/auth/otp.py`,
+`app/application/account/use_cases.py`, `app/core/{config,i18n,metrics}.py`, `app/container.py`,
+`app/presentation/{api/factories.py,api/router.py,api/v1/auth.py,api/v1/me.py,schemas/auth.py}`,
+`.env.example`, `docs/backend/openapi.json`. Testlar: 138 → 152.
+
+**Xavfsizlik tuzatishi:** `httpx` INFO logi to'liq URL yozardi — Telegram tokeni (va S3 imzolari)
+URL ichida bo'lgani uchun logga tushardi. `httpx`/`httpcore` WARNING darajasiga tushirildi, log
+formatteri bot tokenini maskalaydi (test bilan). Lokal `.env` endi testlarga ta'sir qilmaydi.
+
+**Ochiq:** haqiqiy bot bilan tekshirilmagan (token yo'q, Telegram fake bilan testlangan);
+webhook uchun HTTPS domen kerak. Ma'lumot hududi: raqamni Telegram'ga biz yubormaymiz —
+foydalanuvchi o'zi ulashadi.
+
+---
+
 ## 2026-09-29 — Backend_task.md: hisoblar, kategoriyalar, Home, statistika, eksport, insights, sync
 
 Batafsil (har bir BE-task holati, qarorlar, mobil uchun API o'zgarishlari):
@@ -39,6 +83,8 @@ xato kodlari: [ERROR_CODES.md](./ERROR_CODES.md) · API: [openapi.json](./openap
   `token_expired`, `purpose: pin_reset`, PlayMobile zaxira SMS, attestation porti.
 - **Xavfsizlik (oldingi auditdan)**: telefon kalitini almashtirish (`jobs reencrypt-phones`),
   bitta IP'dan ko'p turli raqam alerti, audit retention job'i.
+- **Swagger UI** (faqat dev): `/docs` sahifasiga CDN uchun alohida CSP — oldin qat'iy
+  `default-src 'none'` sahifani bo'sh qoldirardi. API javoblaridagi CSP o'zgarmadi.
 - **Infra**: `/ready`, latency metrikasi, yangi alertlar, `app.seed`, `app.openapi` (+ CI
   tekshiruvi), k6 yuklama skripti, Dockerfile'da PDF shrifti, `roles.sql`da `pg_trgm`.
 

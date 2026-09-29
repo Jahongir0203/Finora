@@ -77,3 +77,32 @@ async def test_health_and_ready(client):
     assert (await client.get("/health")).json() == {"status": "ok"}
     r = await client.get("/ready")
     assert r.status_code == 200 and r.json() == {"status": "ok", "db": True, "cache": True}
+
+
+async def test_docs_csp_relaxed_only_for_swagger_in_dev(settings, container):
+    import httpx
+
+    from app.main import create_app
+
+    settings.docs_enabled = True
+    app = create_app(settings, container)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                 base_url="https://api.test") as c:
+        docs = await c.get("/docs")
+        api = await c.get("/v1/goals")
+    assert docs.status_code == 200 and "cdn.jsdelivr.net" in docs.headers[
+        "content-security-policy"]
+    assert api.headers["content-security-policy"].startswith("default-src 'none'")
+
+
+def test_logs_never_contain_bot_token_or_http_urls(caplog):
+    from app.core.logging import JsonFormatter, configure_logging
+
+    configure_logging("INFO")
+    token = "1234567890:AAFakeTokenForTestsOnly_abcdefghijklm"
+    caplog.set_level(logging.INFO)
+    logging.getLogger("httpx").info("HTTP Request: POST https://api.telegram.org/bot%s/x", token)
+    logging.getLogger("finora.test").info("url https://api.telegram.org/bot%s/getMe", token)
+    output = "\n".join(JsonFormatter().format(r) for r in caplog.records)
+    assert token not in output and "AAFake" not in output
+    assert logging.getLogger("httpx").getEffectiveLevel() >= logging.WARNING

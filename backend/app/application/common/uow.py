@@ -18,6 +18,7 @@ from app.domain.insights.repository import InsightRepository
 from app.domain.notifications.repository import NotificationRepository, PushTokenRepository
 from app.domain.receipts.repository import ReceiptRepository
 from app.domain.reminders.repository import ReminderRepository
+from app.domain.telegram.repository import TelegramLinkRepository
 from app.domain.transactions.repository import LedgerQueries, TransactionRepository
 from app.domain.users.repository import UserRepository
 
@@ -38,6 +39,7 @@ class UnitOfWork(Protocol):
     insights: InsightRepository
     faq: FaqRepository
     currency_rates: CurrencyRateRepository
+    telegram_links: TelegramLinkRepository
     notifications: NotificationRepository
     push_tokens: PushTokenRepository
     audit: AuditRepository

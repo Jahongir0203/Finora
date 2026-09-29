@@ -355,6 +355,18 @@ class CurrencyRateModel(Base):
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime)
 
 
+class TelegramLinkModel(Base):
+    """Telegram bot OTP: raqam (blind index) -> chat. Raqamning o'zi saqlanmaydi."""
+
+    __tablename__ = "telegram_links"
+
+    phone_index: Mapped[str] = mapped_column(String(64), primary_key=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger, unique=True)
+    telegram_user_id: Mapped[int] = mapped_column(BigInteger)
+    language: Mapped[str] = mapped_column(String(8))
+    linked_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
 class IdempotencyKeyModel(Base):
     __tablename__ = "idempotency_keys"
 

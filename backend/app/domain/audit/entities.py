@@ -16,6 +16,7 @@ class AuditAction(StrEnum):
     ACCOUNT_DELETE_REQUESTED = "account_delete_requested"
     EXPORT_CREATED = "export_created"
     EXPORT_DOWNLOADED = "export_downloaded"
+    TELEGRAM_LINKED = "telegram_linked"
 
 
 @dataclass(slots=True)

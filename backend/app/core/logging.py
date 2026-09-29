@@ -16,6 +16,8 @@ request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 _PHONE_RE = re.compile(r"\+?998[\s-]?(\d{2})[\s-]?\d{3}[\s-]?\d{2}[\s-]?(\d{2})")
 _JWT_RE = re.compile(r"eyJ[\w-]+\.[\w-]+\.[\w-]+")
+# Telegram bot tokeni API URL ichida bo'ladi: /bot<id>:<secret>/method
+_BOT_TOKEN_RE = re.compile(r"\d{6,12}:[A-Za-z0-9_-]{30,}")
 _SENSITIVE_KEYS = {
     "token",
     "access_token",
@@ -44,6 +46,7 @@ def mask_phone(phone: str) -> str:
 
 def scrub_text(text: str) -> str:
     text = _PHONE_RE.sub(lambda m: f"+998 {m.group(1)} *** ** {m.group(2)}", text)
+    text = _BOT_TOKEN_RE.sub("[bot-token]", text)
     return _JWT_RE.sub("[jwt]", text)
 
 
@@ -88,3 +91,7 @@ def configure_logging(level: str = "INFO") -> None:
     root.setLevel(level)
     # uvicorn access log so'rov query-stringini yozadi — o'chiramiz, o'zimizniki bor
     logging.getLogger("uvicorn.access").disabled = True
+    # httpx/httpcore INFO'da to'liq URL yozadi: Telegram tokeni, S3 imzolari URL ichida.
+    # Tashqi so'rovlar holati o'z adapterlarimizda (URL'siz) loglanadi
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)

@@ -19,13 +19,14 @@ from app.presentation.api.v1 import (
     reminders,
     stats,
     sync,
+    telegram,
     transactions,
 )
 
 api_router = APIRouter(prefix="/v1")
 for module in (auth, me, devices, notifications, home, onboarding, accounts, categories,
                transactions, goals, reminders, exports, receipts, stats, insights, ai, sync,
-               currencies, help):
+               currencies, help, telegram):
     api_router.include_router(module.router)
 api_router.include_router(accounts.transfers_router)
 api_router.include_router(categories.budgets_router)

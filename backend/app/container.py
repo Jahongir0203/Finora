@@ -23,6 +23,7 @@ from app.application.common.interfaces import (
     ReportRenderer,
     SecretHasher,
     SmsSender,
+    TelegramBot,
     UrlSigner,
 )
 from app.application.common.rate_limit import RateLimiter
@@ -56,6 +57,7 @@ from app.infrastructure.sms.fallback import FallbackSmsSender
 from app.infrastructure.sms.playmobile import PlayMobileSmsSender
 from app.infrastructure.storage.local import LocalFileStorage
 from app.infrastructure.storage.s3 import S3FileStorage
+from app.infrastructure.telegram.bot import TelegramBotClient
 
 
 @dataclass
@@ -83,6 +85,7 @@ class Container:
     fiscal: FiscalReceiptProvider | None = None
     rates: RatesProvider | None = None
     attestation: AttestationVerifier | None = None
+    telegram: TelegramBot | None = None
     renderers: dict[ExportFormat, ReportRenderer] = field(default_factory=dict)
     limiter: RateLimiter = field(init=False)
     ledger: Ledger = field(init=False)
@@ -98,7 +101,7 @@ class Container:
 
     async def aclose(self) -> None:
         """HTTP klientlari (SMS, push) va DB pulini yopadi."""
-        for resource in (self.sms, self.push, self.rates):
+        for resource in (self.sms, self.push, self.rates, self.telegram):
             close = getattr(resource, "aclose", None)
             if close is not None:
                 await close()
@@ -185,4 +188,6 @@ def build_container(settings: Settings) -> Container:
         insights=RuleBasedInsightsModel(),
         push=push,
         rates=CbuRatesProvider(settings.cbu_rates_url),
+        telegram=(TelegramBotClient(settings.telegram_bot_token.get_secret_value())
+                  if settings.telegram_bot_token else None),
     )

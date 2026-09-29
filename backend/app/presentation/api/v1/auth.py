@@ -31,6 +31,11 @@ from app.presentation.schemas.common import ERROR_RESPONSES
 router = APIRouter(prefix="/auth", tags=["auth"], responses=ERROR_RESPONSES)
 
 
+def telegram_bot_url(c: ContainerDep) -> str | None:
+    username = c.settings.telegram_bot_username
+    return f"https://t.me/{username}?start=login" if c.telegram and username else None
+
+
 def _decode_key(value: str) -> bytes:
     try:
         return base64.urlsafe_b64decode(value.replace("+", "-").replace("/", "_")
@@ -45,8 +50,9 @@ async def request_otp(body: OtpRequestIn, request: Request, c: ContainerDep) -> 
     """Raqam ro'yxatdan o'tgan-o'tmaganidan qat'i nazar bir xil javob (BE-101)."""
     sent = await factories.request_otp(c).execute(RequestOtpCommand(
         phone=body.phone, ip=client_ip(request), installation_id=body.device_id,
-        attestation_token=body.attestation_token))
-    return OtpSentOut(resend_after=sent.resend_after, expires_in=sent.expires_in)
+        attestation_token=body.attestation_token, force_sms=body.channel == "sms"))
+    return OtpSentOut(resend_after=sent.resend_after, expires_in=sent.expires_in,
+                      telegram_bot_url=telegram_bot_url(c))
 
 
 @router.post("/verify", response_model=VerifyOut)

@@ -238,6 +238,53 @@ _C: dict[str, dict[str, str]] = {
         "ru": "Внутренняя ошибка. Попробуйте позже", "kk": "Ішкі қате. Кейінірек көріңіз",
         "tr": "Bir şeyler ters gitti. Daha sonra deneyin"},
 
+    # Telegram bot (OTP)
+    "telegram.code": {
+        "en": "Finora: your verification code is {code}. Do not share it with anyone.",
+        "uz-Latn": "Finora: tasdiqlash kodi {code}. Uni hech kimga aytmang.",
+        "ru": "Finora: код подтверждения {code}. Никому его не сообщайте.",
+        "kk": "Finora: растау коды {code}. Оны ешкімге айтпаңыз.",
+        "tr": "Finora: doğrulama kodunuz {code}. Kimseyle paylaşmayın."},
+    "telegram.welcome": {
+        "en": "Hi! Share your phone number and Finora login codes will arrive here "
+              "instead of SMS.",
+        "uz-Latn": "Salom! Telefon raqamingizni ulashing — Finora'ga kirish kodlari SMS "
+                   "o'rniga shu yerga keladi.",
+        "ru": "Привет! Поделитесь номером телефона — коды входа в Finora будут приходить "
+              "сюда вместо SMS.",
+        "kk": "Сәлем! Телефон нөміріңізбен бөлісіңіз — Finora кіру кодтары SMS орнына осында "
+              "келеді.",
+        "tr": "Merhaba! Telefon numaranızı paylaşın, Finora giriş kodları SMS yerine buraya "
+              "gelsin."},
+    "telegram.share_button": {
+        "en": "📱 Share my phone number", "uz-Latn": "📱 Raqamni ulashish",
+        "ru": "📱 Поделиться номером", "kk": "📱 Нөмірмен бөлісу",
+        "tr": "📱 Numaramı paylaş"},
+    "telegram.linked": {
+        "en": "Done ✅ Login codes will now arrive in this chat.",
+        "uz-Latn": "Tayyor ✅ Endi kirish kodlari shu chatga keladi.",
+        "ru": "Готово ✅ Теперь коды входа будут приходить в этот чат.",
+        "kk": "Дайын ✅ Енді кіру кодтары осы чатқа келеді.",
+        "tr": "Tamam ✅ Giriş kodları artık bu sohbete gelecek."},
+    "telegram.not_own": {
+        "en": "Please share your own number with the button below.",
+        "uz-Latn": "Iltimos, pastdagi tugma orqali o'z raqamingizni ulashing.",
+        "ru": "Пожалуйста, поделитесь своим номером кнопкой ниже.",
+        "kk": "Төмендегі батырма арқылы өз нөміріңізбен бөлісіңіз.",
+        "tr": "Lütfen aşağıdaki düğmeyle kendi numaranızı paylaşın."},
+    "telegram.not_uz": {
+        "en": "Finora currently supports only Uzbekistan (+998) numbers.",
+        "uz-Latn": "Finora hozircha faqat O'zbekiston (+998) raqamlarini qo'llab-quvvatlaydi.",
+        "ru": "Finora пока поддерживает только номера Узбекистана (+998).",
+        "kk": "Finora әзірге тек Өзбекстан (+998) нөмірлерін қолдайды.",
+        "tr": "Finora şimdilik yalnızca Özbekistan (+998) numaralarını destekliyor."},
+    "telegram.unlinked": {
+        "en": "Unlinked. Codes will be sent by SMS.",
+        "uz-Latn": "Uzildi. Kodlar SMS orqali yuboriladi.",
+        "ru": "Отключено. Коды будут приходить по SMS.",
+        "kk": "Ажыратылды. Кодтар SMS арқылы жіберіледі.",
+        "tr": "Bağlantı kaldırıldı. Kodlar SMS ile gönderilecek."},
+
     # Kategoriyalar (BE-1501)
     "category.groceries": {"en": "Groceries", "uz-Latn": "Oziq-ovqat", "ru": "Продукты",
                            "kk": "Азық-түлік", "tr": "Market"},

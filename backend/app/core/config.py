@@ -122,6 +122,13 @@ class Settings(BaseSettings):
     playmobile_password: SecretStr | None = None
     playmobile_originator: str = "3700"
 
+    # Telegram bot orqali OTP (o'z botimiz). Token bo'lmasa — faqat SMS
+    telegram_bot_token: SecretStr | None = None
+    # setWebhook secret_token; har webhook so'rovida X-Telegram-Bot-Api-Secret-Token sarlavhasi
+    telegram_webhook_secret: SecretStr | None = None
+    # Deep link uchun (t.me/<username>), masalan "finora_uz_bot"
+    telegram_bot_username: str | None = None
+
     # Play Integrity / App Attest (BE-106). True bo'lsa attestation_token majburiy
     attestation_required: bool = False
 
@@ -178,6 +185,10 @@ class Settings(BaseSettings):
                 raise ValueError("Prod muhitida push provayderi (FCM yoki APNs) majburiy")
             if not self.s3_bucket:
                 raise ValueError("Prod muhitida FINORA_S3_BUCKET majburiy (lokal disk emas)")
+            if self.telegram_bot_token is not None and (
+                    self.telegram_webhook_secret is None
+                    or len(self.telegram_webhook_secret.get_secret_value()) < 32):
+                raise ValueError("Telegram bot uchun FINORA_TELEGRAM_WEBHOOK_SECRET (32+) majburiy")
             if not self.clamav_host:
                 raise ValueError("Prod muhitida FINORA_CLAMAV_HOST majburiy (chek antivirus skani)")
         return self

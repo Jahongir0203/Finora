@@ -33,6 +33,9 @@ from app.infrastructure.sms.console import InMemorySmsSender
 from app.infrastructure.storage.local import LocalFileStorage
 from app.main import create_app
 
+# Lokal backend/.env (dev secret'lar, ENFORCE_HTTPS=false) testlarga ta'sir qilmasin
+Settings.model_config["env_file"] = None
+
 
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:

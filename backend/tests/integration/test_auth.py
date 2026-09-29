@@ -13,7 +13,8 @@ async def test_otp_response_does_not_reveal_registration(client, container):
     unknown = await client.post("/v1/auth/otp", json={
         "phone": "+998909998877", "device_id": DeviceKey().installation_id})
     assert known.status_code == unknown.status_code == 200
-    assert known.json() == unknown.json() == {"resend_after": 60, "expires_in": 120}
+    assert known.json() == unknown.json() == {"resend_after": 60, "expires_in": 120,
+                                              "telegram_bot_url": None}
 
 
 async def test_resend_before_60s_returns_429(client):

@@ -8,6 +8,7 @@ from app.application.goals.use_cases import GoalService
 from app.application.insights.use_cases import InsightService
 from app.application.receipts.use_cases import ReceiptService
 from app.application.reminders.use_cases import ReminderService
+from app.application.telegram.use_cases import TelegramOtpChannel
 from app.application.transactions.use_cases import TransactionService, TransferService
 from app.container import Container
 from app.infrastructure.files.images import sniff_image_format
@@ -56,7 +57,9 @@ def receipts(c: Container) -> ReceiptService:
 
 
 def request_otp(c: Container) -> RequestOtp:
-    return RequestOtp(c.kv, c.limiter, c.hasher, c.sms, c.clock, c.settings, c.attestation)
+    telegram = TelegramOtpChannel(c.uow, c.telegram) if c.telegram is not None else None
+    return RequestOtp(c.kv, c.limiter, c.hasher, c.sms, c.clock, c.settings, c.attestation,
+                      telegram)
 
 
 def otp_checker(c: Container) -> OtpChecker:

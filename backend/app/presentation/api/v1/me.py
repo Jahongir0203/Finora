@@ -8,6 +8,7 @@ from app.application.auth.sessions import SignOutDevice
 from app.application.profile.use_cases import DeviceService, ProfileService
 from app.presentation.api import factories
 from app.presentation.api.deps import AuthDep, ContainerDep, TimezoneHeader, client_ip
+from app.presentation.api.v1.auth import telegram_bot_url
 from app.presentation.schemas.auth import DeviceOut, OtpSentOut
 from app.presentation.schemas.common import ERROR_RESPONSES
 from app.presentation.schemas.notifications import CountOut
@@ -72,7 +73,8 @@ async def send_deletion_code(ctx: AuthDep, c: ContainerDep, request: Request) ->
     """Akkauntni o'chirishdan oldin SMS kod (BE-1304)."""
     sent = await SendDeletionCode(c.uow(), c.cipher, factories.request_otp(c)).execute(
         ctx, client_ip(request))
-    return OtpSentOut(resend_after=sent.resend_after, expires_in=sent.expires_in)
+    return OtpSentOut(resend_after=sent.resend_after, expires_in=sent.expires_in,
+                      telegram_bot_url=telegram_bot_url(c))
 
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)

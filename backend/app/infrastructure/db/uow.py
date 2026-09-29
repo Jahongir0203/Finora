@@ -20,6 +20,7 @@ from app.domain.insights.repository import InsightRepository
 from app.domain.notifications.repository import NotificationRepository, PushTokenRepository
 from app.domain.receipts.repository import ReceiptRepository
 from app.domain.reminders.repository import ReminderRepository
+from app.domain.telegram.repository import TelegramLinkRepository
 from app.domain.transactions.repository import LedgerQueries, TransactionRepository
 from app.domain.users.repository import UserRepository
 from app.infrastructure.db.repositories.accounts import SqlAccountRepository
@@ -42,6 +43,7 @@ from app.infrastructure.db.repositories.notifications import (
 )
 from app.infrastructure.db.repositories.receipts import SqlReceiptRepository
 from app.infrastructure.db.repositories.reminders import SqlReminderRepository
+from app.infrastructure.db.repositories.telegram import SqlTelegramLinkRepository
 from app.infrastructure.db.repositories.transactions import (
     SqlLedgerQueries,
     SqlTransactionRepository,
@@ -69,6 +71,7 @@ class SqlAlchemyUnitOfWork:
     insights: InsightRepository
     faq: FaqRepository
     currency_rates: CurrencyRateRepository
+    telegram_links: TelegramLinkRepository
     notifications: NotificationRepository
     push_tokens: PushTokenRepository
     audit: AuditRepository
@@ -96,6 +99,7 @@ class SqlAlchemyUnitOfWork:
         self.insights = SqlInsightRepository(s)
         self.faq = SqlFaqRepository(s)
         self.currency_rates = SqlCurrencyRateRepository(s)
+        self.telegram_links = SqlTelegramLinkRepository(s)
         self.notifications = SqlNotificationRepository(s)
         self.push_tokens = SqlPushTokenRepository(s)
         self.audit = SqlAuditRepository(s)

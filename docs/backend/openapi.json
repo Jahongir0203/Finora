@@ -2405,6 +2405,15 @@
             ],
             "title": "Attestation Token"
           },
+          "channel": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "sms"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
           "device_id": {
             "format": "uuid",
             "title": "Device Id",
@@ -2433,6 +2442,17 @@
           "resend_after": {
             "title": "Resend After",
             "type": "integer"
+          },
+          "telegram_bot_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Bot Url"
           }
         },
         "required": [

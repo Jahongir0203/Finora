@@ -200,3 +200,15 @@ class ReportRenderer(Protocol):
     """Eksport fayli (PDF / XLSX / CSV)."""
 
     def render(self, report: "ExportReport") -> RenderedReport: ...
+
+
+class TelegramChatUnavailable(Exception):
+    """Foydalanuvchi botni bloklagan yoki chat yo'q (Telegram 403/400) — bog'lanish o'chiriladi."""
+
+
+class TelegramBot(Protocol):
+    """Telegram Bot API (o'z botimiz). Xato: TelegramChatUnavailable yoki
+    ServiceUnavailableError (Telegram javob bermayapti)."""
+
+    async def send_message(self, chat_id: int, text: str,
+                           reply_markup: dict[str, object] | None = None) -> None: ...

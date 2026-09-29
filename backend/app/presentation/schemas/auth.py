@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, StringConstraints
@@ -26,11 +26,16 @@ class OtpRequestIn(StrictModel):
     # Ilova o'rnatilganda yaratiladigan UUID (installation id)
     device_id: UUID
     attestation_token: AttestationToken | None = None
+    # "sms" — Telegram ulangan bo'lsa ham SMS ("SMS orqali yuborish" tugmasi)
+    channel: Literal["auto", "sms"] = "auto"
 
 
 class OtpSentOut(BaseModel):
     resend_after: int
     expires_in: int
+    # Kodni Telegram'da olish uchun bot havolasi (bot sozlanmagan bo'lsa null). Javob har
+    # doim bir xil: kod qaysi kanalga ketgani oshkor qilinmaydi (02-backend.md, 1-bo'lim)
+    telegram_bot_url: str | None = None
 
 
 class OtpVerifyIn(StrictModel):

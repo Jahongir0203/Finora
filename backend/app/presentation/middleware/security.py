@@ -16,6 +16,13 @@ SECURITY_HEADERS = [
     (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'"),
 ]
 
+# Swagger UI (faqat dev'da yoqiladi — prod'da docs_enabled taqiqlangan): sahifa JS/CSS'ni
+# cdn.jsdelivr.net'dan oladi, shuning uchun unga yumshoqroq CSP. API javoblari — qat'iy.
+DOCS_PATH = "/docs"
+DOCS_CSP = (b"default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            b"style-src 'self' https://cdn.jsdelivr.net; "
+            b"img-src 'self' data: https://fastapi.tiangolo.com; frame-ancestors 'none'")
+
 # 10 MB faqat chek yuklash endpointi uchun, qolgan hamma joyda 1 MB
 RECEIPT_UPLOAD_PATH = "/v1/receipts/scan"
 # Klaster ichidan (pod'ga to'g'ridan-to'g'ri) HTTP orqali so'raladi; gateway bu yo'llarni
@@ -91,6 +98,8 @@ class SecurityMiddleware:
             if message["type"] == "http.response.start":
                 response_started = True
                 headers = [h for h in message.get("headers", []) if h[0] != b"server"]
+                if path == DOCS_PATH and self.s.docs_enabled:
+                    headers.append((b"content-security-policy", DOCS_CSP))
                 existing = {h[0] for h in headers}
                 headers += [h for h in SECURITY_HEADERS if h[0] not in existing]
                 message["headers"] = headers

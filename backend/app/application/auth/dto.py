@@ -28,6 +28,8 @@ class RequestOtpCommand:
     ip: str
     installation_id: UUID
     attestation_token: str | None = None
+    # True — Telegram ulangan bo'lsa ham SMS ("SMS orqali yuborish" tugmasi)
+    force_sms: bool = False
 
 
 @dataclass(frozen=True, slots=True)

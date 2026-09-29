@@ -18,7 +18,9 @@ from app.core.config import Settings
 def build_spec() -> dict[str, Any]:
     from app.main import create_app
 
-    settings = Settings(env="test", database_url="sqlite+aiosqlite:///:memory:",
+    # _env_file=None: lokal .env ta'sir qilmasin (spetsifikatsiya deterministik)
+    settings = Settings(_env_file=None,
+                        env="test", database_url="sqlite+aiosqlite:///:memory:",
                         redis_url=None, docs_enabled=True)
     app = create_app(settings)
     spec = app.openapi()

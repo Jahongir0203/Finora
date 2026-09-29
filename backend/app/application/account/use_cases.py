@@ -52,6 +52,9 @@ class DeleteAccount:
             await uow.sessions.revoke_all_for_user(ctx.user_id, RevokeReason.ACCOUNT_DELETED, now)
             file_keys = await uow.exports.file_keys_for_user(ctx.user_id)
             file_keys += await uow.receipts.file_keys_for_user(ctx.user_id)
+            user = await uow.users.get(ctx.user_id)
+            if user is not None:
+                await uow.telegram_links.delete(user.phone_index)
             await uow.users.purge(ctx.user_id)
             await record_audit(uow, self._clock, AuditAction.ACCOUNT_DELETE_REQUESTED,
                                user_id=ctx.user_id, device_id=ctx.device_id)

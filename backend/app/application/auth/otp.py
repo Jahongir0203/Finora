@@ -27,6 +27,7 @@ from app.application.common.interfaces import (
 from app.application.common.rate_limit import DAY, HOUR, Limit, RateLimiter
 from app.application.common.uow import UnitOfWork
 from app.application.profile.use_cases import onboarding_state
+from app.application.telegram.use_cases import TelegramOtpChannel
 from app.core.config import Settings
 from app.domain.audit.entities import AuditAction
 from app.domain.auth.entities import Device, OtpChallenge, RevokeReason, Session
@@ -117,6 +118,7 @@ class RequestOtp:
         clock: Clock,
         settings: Settings,
         attestation: AttestationVerifier | None = None,
+        telegram: TelegramOtpChannel | None = None,
     ) -> None:
         self._store = store
         self._limiter = limiter
@@ -125,12 +127,14 @@ class RequestOtp:
         self._clock = clock
         self._s = settings
         self._attestation = attestation
+        self._telegram = telegram
 
     async def execute(self, cmd: RequestOtpCommand) -> OtpSent:
         """Javob har doim bir xil — raqam ro'yxatdan o'tgan-o'tmagani oshkor qilinmaydi."""
         phone = PhoneNumber.parse(cmd.phone)
         await self._check_attestation(cmd)
-        return await self.send(phone, installation_id=str(cmd.installation_id), ip=cmd.ip)
+        return await self.send(phone, installation_id=str(cmd.installation_id), ip=cmd.ip,
+                               force_sms=cmd.force_sms)
 
     async def _check_attestation(self, cmd: RequestOtpCommand) -> None:
         """BE-106: Play Integrity / App Attest. Majburiy qilish — FINORA_ATTESTATION_REQUIRED."""
@@ -142,7 +146,8 @@ class RequestOtp:
         elif self._s.attestation_required:
             raise ValidationFailedError(fields=["attestation_token"], code="attestation_failed")
 
-    async def send(self, phone: PhoneNumber, *, installation_id: str, ip: str) -> OtpSent:
+    async def send(self, phone: PhoneNumber, *, installation_id: str, ip: str,
+                   force_sms: bool = False) -> OtpSent:
         idx = self._hasher.phone_index(phone)
         await _ensure_not_blocked(self._store, idx)
 
@@ -179,7 +184,12 @@ class RequestOtp:
         )
         # Yangi kod — yangi urinishlar hisobi
         await self._store.delete(_attempts_key(idx))
-        await self._sms.send(phone, f"Finora: tasdiqlash kodi {code}. Uni hech kimga aytmang.")
+        # Raqam botga ulangan bo'lsa — Telegram (bepul); bo'lmasa / bot bloklangan — SMS.
+        # Javob kanalni oshkor qilmaydi: aks holda raqam Finora'da borligi bilinib qolardi
+        delivered = (not force_sms and self._telegram is not None
+                     and await self._telegram.try_send(idx, code))
+        if not delivered:
+            await self._sms.send(phone, f"Finora: tasdiqlash kodi {code}. Uni hech kimga aytmang.")
         logger.info("otp_sent")
         return OtpSent(resend_after=s.otp_resend_seconds, expires_in=s.otp_ttl_seconds)
 
