@@ -23,6 +23,9 @@ class AppNotification {
   final DateTime createdAt;
   final bool isRead;
 
+  /// `finora://…` screen to open on tap.
+  final String? deepLink;
+
   const AppNotification({
     required this.id,
     required this.type,
@@ -30,6 +33,7 @@ class AppNotification {
     required this.body,
     required this.createdAt,
     this.isRead = false,
+    this.deepLink,
   });
 
   AppNotification copyWith({bool? isRead}) => AppNotification(
@@ -39,5 +43,6 @@ class AppNotification {
     body: body,
     createdAt: createdAt,
     isRead: isRead ?? this.isRead,
+    deepLink: deepLink,
   );
 }

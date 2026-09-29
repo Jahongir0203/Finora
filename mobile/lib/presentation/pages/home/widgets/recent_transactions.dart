@@ -1,3 +1,6 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:finora/application/finance/finance_cubit.dart';
+import 'package:finora/common/theme/category_icons.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:finora/common/extensions/datetime_extensions.dart';
 import 'package:finora/common/extensions/format_extensions.dart';
@@ -74,7 +77,9 @@ class _TransactionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.appColors;
     final t = transaction;
-    final category = AppCategory.byName(t.category);
+    final category = context.select(
+      (FinanceCubit b) => b.state.category(t.category),
+    );
     final now = DateTime.now();
     final isToday =
         t.date.year == now.year &&
@@ -90,7 +95,10 @@ class _TransactionRow extends StatelessWidget {
         spacing: AppSpacing.md,
         children: [
           category != null
-              ? CategoryIcon.category(category)
+              ? CategoryIcon(
+                  icon: category.iconData,
+                  color: category.colorValue,
+                )
               : CategoryIcon(
                   icon: t.isIncome ? FinoraIcons.salary : FinoraIcons.wallet,
                   color: t.isIncome ? AppPalette.primary500 : c.textSecondary,

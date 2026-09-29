@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
@@ -180,8 +181,14 @@ class _AccountsPageState extends State<AccountsPage> {
                         label: active.frozen
                             ? Words.unfreeze.str
                             : Words.freeze.str,
-                        onTap: () {
-                          finance.setAccountFrozen(active.id, !active.frozen);
+                        onTap: () async {
+                          final ok = await apiRun(
+                            () => finance.setAccountFrozen(
+                              active.id,
+                              !active.frozen,
+                            ),
+                          );
+                          if (!ok) return;
                           AppToast.info(
                             active.frozen
                                 ? Words.cardUnfrozen.str

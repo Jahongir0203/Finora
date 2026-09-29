@@ -2,7 +2,10 @@ import 'dart:math' as math;
 
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
+import 'package:finora/application/finance/finance_cubit.dart';
 import 'package:finora/common/extensions/format_extensions.dart';
+import 'package:finora/common/helpers/api_call.dart';
+import 'package:finora/common/theme/category_icons.dart';
 import 'package:finora/common/theme/core/functions.dart';
 import 'package:finora/common/widgets/app_empty_state.dart';
 import 'package:finora/common/widgets/app_button.dart';
@@ -14,11 +17,14 @@ import 'package:finora/common/widgets/app_text_field.dart';
 import 'package:finora/common/widgets/app_toast.dart';
 import 'package:finora/common/widgets/edge_scroll_row.dart';
 import 'package:finora/common/words/words.dart';
+import 'package:finora/di.dart';
+import 'package:finora/domain/facades/insights_facade.dart';
+import 'package:finora/domain/models/insights/insight.dart';
 import 'package:finora/presentation/pages/auth/widgets/auth_back_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'insights_data.dart';
 
 /// AI insights (docs/screens/STATS_INSIGHTS.md §2).
 @RoutePage()
@@ -30,12 +36,35 @@ class InsightsPage extends StatefulWidget {
 }
 
 class _InsightsPageState extends State<InsightsPage> {
+  final _facade = di<InsightsFacade>();
   final _input = TextEditingController();
   final _dismissed = <String>{};
 
+  InsightList? _list;
+  var _suggestions = const <String>[];
   String? _asked;
   String? _answer;
   var _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _facade.suggestions().then((v) {
+      if (mounted) setState(() => _suggestions = v);
+    }, onError: (_) {});
+  }
+
+  Future<void> _load({bool includeDismissed = false}) async {
+    final list = await apiCall(
+      () => _facade.getInsights(includeDismissed: includeDismissed),
+    );
+    if (!mounted || list == null) return;
+    setState(() {
+      _list = list;
+      _dismissed.clear();
+    });
+  }
 
   @override
   void dispose() {
@@ -43,8 +72,13 @@ class _InsightsPageState extends State<InsightsPage> {
     super.dispose();
   }
 
-  List<Recommendation> get _visible =>
-      recommendations.where((r) => !_dismissed.contains(r.id)).toList();
+  List<Insight> get _all => _list?.items ?? const [];
+
+  List<Insight> get _visible => _all
+      .where((r) => !r.dismissed && !_dismissed.contains(r.id))
+      .toList();
+
+  bool _hidden(Insight r) => r.dismissed || _dismissed.contains(r.id);
 
   Future<void> _ask(String q) async {
     if (q.trim().isEmpty || _loading) return;
@@ -55,32 +89,45 @@ class _InsightsPageState extends State<InsightsPage> {
       _answer = null;
       _loading = true;
     });
-    await Future.delayed(const Duration(milliseconds: 1400));
+    final answer = await apiCall(() => _facade.ask(_asked!));
     if (!mounted) return;
     setState(() {
       _loading = false;
-      _answer = mockAiAnswer(_asked!);
+      _answer = answer;
+      if (answer == null) _asked = null;
     });
   }
 
-  void _dismiss(Recommendation r) => setState(() => _dismissed.add(r.id));
+  void _dismiss(Insight r) {
+    setState(() => _dismissed.add(r.id));
+    apiRun(() => _facade.dismiss(r.id));
+  }
 
-  void _act(Recommendation r) {
-    _dismiss(r);
+  Future<void> _act(Insight r) async {
+    setState(() => _dismissed.add(r.id));
+    if (!await apiRun(() => _facade.act(r.id))) {
+      if (mounted) setState(() => _dismissed.remove(r.id));
+      return;
+    }
     AppToast.success(switch (r.action) {
       .remindMe => Words.reminderSetTuesdays.str,
       .turnOn => Words.autoSaveTurnedOn.str,
       _ => Words.doneWeWillTrack.str,
     });
+    // A budget, reminder or auto-save was created on the server.
+    if (mounted) context.read<FinanceCubit>().load();
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
     final visible = _visible;
+    // Tips handled here no longer count towards the server's estimate.
     final potential =
-        visible.fold<num>(0, (s, r) => s + (r.saving ?? 0)) +
-        insightsBaseSavings;
+        (_list?.potentialSaving ?? 0) -
+        _all
+            .where((r) => !r.dismissed && _dismissed.contains(r.id))
+            .fold<num>(0, (s, r) => s + (r.saving ?? 0));
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: authOverlayStyle(
@@ -112,6 +159,7 @@ class _InsightsPageState extends State<InsightsPage> {
                   asked: _asked,
                   answer: _answer,
                   loading: _loading,
+                  suggestions: _suggestions,
                   onAsk: _ask,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -120,12 +168,12 @@ class _InsightsPageState extends State<InsightsPage> {
                   padding: const .symmetric(horizontal: 4),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                for (final (i, r) in recommendations.indexed)
+                for (final (i, r) in _all.indexed)
                   AnimatedSize(
                     key: ValueKey(r.id),
                     duration: AppMotion.fast,
                     curve: AppMotion.ease,
-                    child: _dismissed.contains(r.id)
+                    child: _hidden(r)
                         ? const SizedBox(width: double.infinity)
                         : Padding(
                             padding: const .only(bottom: AppSpacing.md),
@@ -140,7 +188,7 @@ class _InsightsPageState extends State<InsightsPage> {
                             ),
                           ),
                   ),
-                if (visible.isEmpty)
+                if (_list != null && visible.isEmpty)
                   AppEmptyState(
                     icon: FinoraIcons.empty,
                     title: Words.youreAllSet.str,
@@ -149,7 +197,7 @@ class _InsightsPageState extends State<InsightsPage> {
                       text: Words.showDismissed.str,
                       size: AppButtonSize.small,
                       expanded: false,
-                      onPressed: () => setState(_dismissed.clear),
+                      onPressed: () => _load(includeDismissed: true),
                     ),
                   ),
                 const SizedBox(height: AppSpacing.sm),
@@ -283,6 +331,7 @@ class _ChatCard extends StatelessWidget {
   final String? asked;
   final String? answer;
   final bool loading;
+  final List<String> suggestions;
   final ValueChanged<String> onAsk;
 
   const _ChatCard({
@@ -290,6 +339,7 @@ class _ChatCard extends StatelessWidget {
     required this.asked,
     required this.answer,
     required this.loading,
+    required this.suggestions,
     required this.onAsk,
   });
 
@@ -330,7 +380,7 @@ class _ChatCard extends StatelessWidget {
             height: 34,
             inset: 14,
             children: [
-              for (final q in aiSuggestions)
+              for (final q in suggestions)
                 AppPressable(
                   onTap: () => onAsk(q),
                   child: Container(
@@ -535,7 +585,7 @@ class _TypingDotsState extends State<_TypingDots>
 }
 
 class _RecommendationCard extends StatelessWidget {
-  final Recommendation rec;
+  final Insight rec;
   final VoidCallback onDismiss;
   final VoidCallback onAction;
 
@@ -548,6 +598,12 @@ class _RecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
+    final category = context.select(
+      (FinanceCubit b) =>
+          rec.categoryId == null ? null : b.state.category(rec.categoryId!),
+    );
+    final color = category?.colorValue ?? AppPalette.primary500;
+    final icon = CategoryIcons.of(rec.icon);
     final label = switch (rec.action) {
       .setBudget => Words.setBudget.str,
       .remindMe => Words.remindMe.str,
@@ -574,10 +630,10 @@ class _RecommendationCard extends StatelessWidget {
                 height: 40,
                 alignment: .center,
                 decoration: BoxDecoration(
-                  color: AppPalette.tintOf(rec.color),
+                  color: AppPalette.tintOf(color),
                   borderRadius: .circular(12),
                 ),
-                child: Icon(rec.icon, size: AppSizes.iconMd, color: rec.color),
+                child: Icon(icon, size: AppSizes.iconMd, color: color),
               ),
               Expanded(
                 child: Column(

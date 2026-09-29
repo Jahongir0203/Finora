@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
 import 'package:finora/common/extensions/format_extensions.dart';
@@ -98,14 +99,17 @@ class _NewGoalSheetState extends State<NewGoalSheet> {
       setState(() => _showErrors = true);
       return;
     }
-    await context.read<FinanceCubit>().facade.addGoal(
-      name: _name.text.trim(),
-      icon: _icon,
-      target: _amount,
-      due: _dates[_dateIndex],
-      autoSave: _autoSaves[_autoIndex],
+    final finance = context.read<FinanceCubit>().facade;
+    final ok = await apiRun(
+      () => finance.addGoal(
+        name: _name.text.trim(),
+        icon: _icon,
+        target: _amount,
+        due: _dates[_dateIndex],
+        autoSave: _autoSaves[_autoIndex],
+      ),
     );
-    if (!mounted) return;
+    if (!ok || !mounted) return;
     Navigator.of(context).pop();
     AppToast.success(Words.goalCreated.str);
   }

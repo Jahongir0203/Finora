@@ -12,45 +12,43 @@ import 'package:finora/common/widgets/app_pressable.dart';
 import 'package:finora/common/widgets/app_shake.dart';
 import 'package:finora/common/widgets/app_toast.dart';
 import 'package:finora/common/widgets/category_chip.dart';
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:finora/common/words/words.dart';
+import 'package:finora/domain/models/receipts/receipt.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// "Receipt scanned" (docs/screens/ACTIVITY_SCAN.md §5.1).
-///
-/// Shows the sample receipt from the spec until OCR exists.
 class ReceiptResultSheet extends StatelessWidget {
-  const ReceiptResultSheet({super.key});
+  final Receipt receipt;
 
-  static const _merchant = 'Korzinka · Chilonzor';
-  static const _items = [
-    ('Milk 1 L', '×2', 29800),
-    ('Non bread', '×3', 12000),
-    ('Chicken breast', '1 kg', 64900),
-    ('Apples', '1.5 kg', 27000),
-    ('Rice Lazer', '2 kg', 36000),
-    ('Green tea', '×1', 16700),
-  ];
+  const ReceiptResultSheet({super.key, required this.receipt});
 
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(BuildContext context, Receipt receipt) {
     final finance = context.read<FinanceCubit>();
     return AppBottomSheet.show(
       context,
       barrierColor: const Color(0x8C06140E), // rgba(6,20,14,0.55)
       child: BlocProvider.value(
         value: finance,
-        child: const ReceiptResultSheet(),
+        child: ReceiptResultSheet(receipt: receipt),
       ),
     );
   }
 
+  String get _categoryId => receipt.suggestedCategoryId ?? 'groceries';
+
   Future<void> _save(BuildContext context, num total) async {
-    await context.read<FinanceCubit>().facade.addTransaction(
-      categoryId: 'groceries',
-      amount: -total,
-      title: 'Korzinka',
+    final finance = context.read<FinanceCubit>().facade;
+    final ok = await apiRun(
+      () => finance.addTransaction(
+        categoryId: _categoryId,
+        amount: -total,
+        title: receipt.merchant,
+        receiptId: receipt.id,
+      ),
     );
-    if (!context.mounted) return;
+    if (!ok || !context.mounted) return;
     Navigator.of(context).pop();
     context.router.maybePop();
     AppToast.success(Words.expenseSaved.str);
@@ -59,9 +57,10 @@ class ReceiptResultSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
-    final category = context.watch<FinanceCubit>().state.category('groceries');
-    final total = _items.fold<num>(0, (s, e) => s + e.$3);
-    final now = DateTime.now();
+    final category = context.watch<FinanceCubit>().state.category(_categoryId);
+    final total =
+        receipt.total ?? receipt.items.fold<num>(0, (s, e) => s + e.price);
+    final now = receipt.date ?? DateTime.now();
     final lineStyle = AppTypography.body.copyWith(color: c.textPrimary);
 
     return Column(
@@ -101,7 +100,7 @@ class ReceiptResultSheet extends StatelessWidget {
                   crossAxisAlignment: .start,
                   children: [
                     Text(
-                      _merchant,
+                      receipt.merchant ?? category?.name ?? '',
                       style: lineStyle.copyWith(fontWeight: .w600),
                     ),
                     Text(
@@ -117,7 +116,8 @@ class ReceiptResultSheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        for (final (i, (name, qty, price)) in _items.indexed)
+        for (final (i, ReceiptItem(:name, :quantity, :price))
+            in receipt.items.indexed)
           Container(
             padding: const .symmetric(vertical: 8),
             decoration: i == 0
@@ -133,7 +133,7 @@ class ReceiptResultSheet extends StatelessWidget {
                       text: name,
                       children: [
                         TextSpan(
-                          text: ' $qty',
+                          text: ' ×${quantity % 1 == 0 ? quantity.toInt() : quantity}',
                           style: TextStyle(color: c.textTertiary),
                         ),
                       ],
@@ -225,7 +225,7 @@ class ReceiptResultSheet extends StatelessWidget {
               child: AppButton(
                 text: Words.saveExpense.str,
                 size: AppButtonSize.large,
-                onPressed: () => _save(context, total),
+                onPressed: total > 0 ? () => _save(context, total) : null,
               ),
             ),
           ],

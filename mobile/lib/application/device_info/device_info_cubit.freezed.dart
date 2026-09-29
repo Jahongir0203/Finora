@@ -18,7 +18,8 @@ mixin _$DeviceInfoState {
  VarStatus get checkNotJailBrokenStatus;/// checkRealDevice
  VarStatus get checkRealDeviceStatus;/// checkRealLocation
  VarStatus get checkRealLocationStatus;/// projectInfo
- VarStatus get projectInfoStatus; PackageInfo get projectInfo;
+ VarStatus get projectInfoStatus; PackageInfo get projectInfo;/// "iPhone 15 Pro", "Samsung SM-S918B".
+ String get deviceName;
 /// Create a copy of DeviceInfoState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +30,16 @@ $DeviceInfoStateCopyWith<DeviceInfoState> get copyWith => _$DeviceInfoStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeviceInfoState&&(identical(other.checkNotJailBrokenStatus, checkNotJailBrokenStatus) || other.checkNotJailBrokenStatus == checkNotJailBrokenStatus)&&(identical(other.checkRealDeviceStatus, checkRealDeviceStatus) || other.checkRealDeviceStatus == checkRealDeviceStatus)&&(identical(other.checkRealLocationStatus, checkRealLocationStatus) || other.checkRealLocationStatus == checkRealLocationStatus)&&(identical(other.projectInfoStatus, projectInfoStatus) || other.projectInfoStatus == projectInfoStatus)&&(identical(other.projectInfo, projectInfo) || other.projectInfo == projectInfo));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeviceInfoState&&(identical(other.checkNotJailBrokenStatus, checkNotJailBrokenStatus) || other.checkNotJailBrokenStatus == checkNotJailBrokenStatus)&&(identical(other.checkRealDeviceStatus, checkRealDeviceStatus) || other.checkRealDeviceStatus == checkRealDeviceStatus)&&(identical(other.checkRealLocationStatus, checkRealLocationStatus) || other.checkRealLocationStatus == checkRealLocationStatus)&&(identical(other.projectInfoStatus, projectInfoStatus) || other.projectInfoStatus == projectInfoStatus)&&(identical(other.projectInfo, projectInfo) || other.projectInfo == projectInfo)&&(identical(other.deviceName, deviceName) || other.deviceName == deviceName));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,checkNotJailBrokenStatus,checkRealDeviceStatus,checkRealLocationStatus,projectInfoStatus,projectInfo);
+int get hashCode => Object.hash(runtimeType,checkNotJailBrokenStatus,checkRealDeviceStatus,checkRealLocationStatus,projectInfoStatus,projectInfo,deviceName);
 
 @override
 String toString() {
-  return 'DeviceInfoState(checkNotJailBrokenStatus: $checkNotJailBrokenStatus, checkRealDeviceStatus: $checkRealDeviceStatus, checkRealLocationStatus: $checkRealLocationStatus, projectInfoStatus: $projectInfoStatus, projectInfo: $projectInfo)';
+  return 'DeviceInfoState(checkNotJailBrokenStatus: $checkNotJailBrokenStatus, checkRealDeviceStatus: $checkRealDeviceStatus, checkRealLocationStatus: $checkRealLocationStatus, projectInfoStatus: $projectInfoStatus, projectInfo: $projectInfo, deviceName: $deviceName)';
 }
 
 
@@ -49,7 +50,7 @@ abstract mixin class $DeviceInfoStateCopyWith<$Res>  {
   factory $DeviceInfoStateCopyWith(DeviceInfoState value, $Res Function(DeviceInfoState) _then) = _$DeviceInfoStateCopyWithImpl;
 @useResult
 $Res call({
- VarStatus checkNotJailBrokenStatus, VarStatus checkRealDeviceStatus, VarStatus checkRealLocationStatus, VarStatus projectInfoStatus, PackageInfo projectInfo
+ VarStatus checkNotJailBrokenStatus, VarStatus checkRealDeviceStatus, VarStatus checkRealLocationStatus, VarStatus projectInfoStatus, PackageInfo projectInfo, String deviceName
 });
 
 
@@ -66,14 +67,15 @@ class _$DeviceInfoStateCopyWithImpl<$Res>
 
 /// Create a copy of DeviceInfoState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? checkNotJailBrokenStatus = null,Object? checkRealDeviceStatus = null,Object? checkRealLocationStatus = null,Object? projectInfoStatus = null,Object? projectInfo = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? checkNotJailBrokenStatus = null,Object? checkRealDeviceStatus = null,Object? checkRealLocationStatus = null,Object? projectInfoStatus = null,Object? projectInfo = null,Object? deviceName = null,}) {
   return _then(_self.copyWith(
 checkNotJailBrokenStatus: null == checkNotJailBrokenStatus ? _self.checkNotJailBrokenStatus : checkNotJailBrokenStatus // ignore: cast_nullable_to_non_nullable
 as VarStatus,checkRealDeviceStatus: null == checkRealDeviceStatus ? _self.checkRealDeviceStatus : checkRealDeviceStatus // ignore: cast_nullable_to_non_nullable
 as VarStatus,checkRealLocationStatus: null == checkRealLocationStatus ? _self.checkRealLocationStatus : checkRealLocationStatus // ignore: cast_nullable_to_non_nullable
 as VarStatus,projectInfoStatus: null == projectInfoStatus ? _self.projectInfoStatus : projectInfoStatus // ignore: cast_nullable_to_non_nullable
 as VarStatus,projectInfo: null == projectInfo ? _self.projectInfo : projectInfo // ignore: cast_nullable_to_non_nullable
-as PackageInfo,
+as PackageInfo,deviceName: null == deviceName ? _self.deviceName : deviceName // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -158,10 +160,10 @@ return initial(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( VarStatus checkNotJailBrokenStatus,  VarStatus checkRealDeviceStatus,  VarStatus checkRealLocationStatus,  VarStatus projectInfoStatus,  PackageInfo projectInfo)?  initial,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( VarStatus checkNotJailBrokenStatus,  VarStatus checkRealDeviceStatus,  VarStatus checkRealLocationStatus,  VarStatus projectInfoStatus,  PackageInfo projectInfo,  String deviceName)?  initial,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
-return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.checkRealLocationStatus,_that.projectInfoStatus,_that.projectInfo);case _:
+return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.checkRealLocationStatus,_that.projectInfoStatus,_that.projectInfo,_that.deviceName);case _:
   return orElse();
 
 }
@@ -179,10 +181,10 @@ return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( VarStatus checkNotJailBrokenStatus,  VarStatus checkRealDeviceStatus,  VarStatus checkRealLocationStatus,  VarStatus projectInfoStatus,  PackageInfo projectInfo)  initial,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( VarStatus checkNotJailBrokenStatus,  VarStatus checkRealDeviceStatus,  VarStatus checkRealLocationStatus,  VarStatus projectInfoStatus,  PackageInfo projectInfo,  String deviceName)  initial,}) {final _that = this;
 switch (_that) {
 case _Initial():
-return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.checkRealLocationStatus,_that.projectInfoStatus,_that.projectInfo);case _:
+return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.checkRealLocationStatus,_that.projectInfoStatus,_that.projectInfo,_that.deviceName);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +201,10 @@ return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( VarStatus checkNotJailBrokenStatus,  VarStatus checkRealDeviceStatus,  VarStatus checkRealLocationStatus,  VarStatus projectInfoStatus,  PackageInfo projectInfo)?  initial,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( VarStatus checkNotJailBrokenStatus,  VarStatus checkRealDeviceStatus,  VarStatus checkRealLocationStatus,  VarStatus projectInfoStatus,  PackageInfo projectInfo,  String deviceName)?  initial,}) {final _that = this;
 switch (_that) {
 case _Initial() when initial != null:
-return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.checkRealLocationStatus,_that.projectInfoStatus,_that.projectInfo);case _:
+return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.checkRealLocationStatus,_that.projectInfoStatus,_that.projectInfo,_that.deviceName);case _:
   return null;
 
 }
@@ -214,7 +216,7 @@ return initial(_that.checkNotJailBrokenStatus,_that.checkRealDeviceStatus,_that.
 
 
 class _Initial implements DeviceInfoState {
-  const _Initial({this.checkNotJailBrokenStatus = const VarStatus(), this.checkRealDeviceStatus = const VarStatus(), this.checkRealLocationStatus = const VarStatus(), this.projectInfoStatus = const VarStatus(), required this.projectInfo});
+  const _Initial({this.checkNotJailBrokenStatus = const VarStatus(), this.checkRealDeviceStatus = const VarStatus(), this.checkRealLocationStatus = const VarStatus(), this.projectInfoStatus = const VarStatus(), required this.projectInfo, this.deviceName = ''});
   
 
 /// checkNotJailBroken
@@ -226,6 +228,8 @@ class _Initial implements DeviceInfoState {
 /// projectInfo
 @override@JsonKey() final  VarStatus projectInfoStatus;
 @override final  PackageInfo projectInfo;
+/// "iPhone 15 Pro", "Samsung SM-S918B".
+@override@JsonKey() final  String deviceName;
 
 /// Create a copy of DeviceInfoState
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +241,16 @@ _$InitialCopyWith<_Initial> get copyWith => __$InitialCopyWithImpl<_Initial>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Initial&&(identical(other.checkNotJailBrokenStatus, checkNotJailBrokenStatus) || other.checkNotJailBrokenStatus == checkNotJailBrokenStatus)&&(identical(other.checkRealDeviceStatus, checkRealDeviceStatus) || other.checkRealDeviceStatus == checkRealDeviceStatus)&&(identical(other.checkRealLocationStatus, checkRealLocationStatus) || other.checkRealLocationStatus == checkRealLocationStatus)&&(identical(other.projectInfoStatus, projectInfoStatus) || other.projectInfoStatus == projectInfoStatus)&&(identical(other.projectInfo, projectInfo) || other.projectInfo == projectInfo));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Initial&&(identical(other.checkNotJailBrokenStatus, checkNotJailBrokenStatus) || other.checkNotJailBrokenStatus == checkNotJailBrokenStatus)&&(identical(other.checkRealDeviceStatus, checkRealDeviceStatus) || other.checkRealDeviceStatus == checkRealDeviceStatus)&&(identical(other.checkRealLocationStatus, checkRealLocationStatus) || other.checkRealLocationStatus == checkRealLocationStatus)&&(identical(other.projectInfoStatus, projectInfoStatus) || other.projectInfoStatus == projectInfoStatus)&&(identical(other.projectInfo, projectInfo) || other.projectInfo == projectInfo)&&(identical(other.deviceName, deviceName) || other.deviceName == deviceName));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,checkNotJailBrokenStatus,checkRealDeviceStatus,checkRealLocationStatus,projectInfoStatus,projectInfo);
+int get hashCode => Object.hash(runtimeType,checkNotJailBrokenStatus,checkRealDeviceStatus,checkRealLocationStatus,projectInfoStatus,projectInfo,deviceName);
 
 @override
 String toString() {
-  return 'DeviceInfoState.initial(checkNotJailBrokenStatus: $checkNotJailBrokenStatus, checkRealDeviceStatus: $checkRealDeviceStatus, checkRealLocationStatus: $checkRealLocationStatus, projectInfoStatus: $projectInfoStatus, projectInfo: $projectInfo)';
+  return 'DeviceInfoState.initial(checkNotJailBrokenStatus: $checkNotJailBrokenStatus, checkRealDeviceStatus: $checkRealDeviceStatus, checkRealLocationStatus: $checkRealLocationStatus, projectInfoStatus: $projectInfoStatus, projectInfo: $projectInfo, deviceName: $deviceName)';
 }
 
 
@@ -257,7 +261,7 @@ abstract mixin class _$InitialCopyWith<$Res> implements $DeviceInfoStateCopyWith
   factory _$InitialCopyWith(_Initial value, $Res Function(_Initial) _then) = __$InitialCopyWithImpl;
 @override @useResult
 $Res call({
- VarStatus checkNotJailBrokenStatus, VarStatus checkRealDeviceStatus, VarStatus checkRealLocationStatus, VarStatus projectInfoStatus, PackageInfo projectInfo
+ VarStatus checkNotJailBrokenStatus, VarStatus checkRealDeviceStatus, VarStatus checkRealLocationStatus, VarStatus projectInfoStatus, PackageInfo projectInfo, String deviceName
 });
 
 
@@ -274,14 +278,15 @@ class __$InitialCopyWithImpl<$Res>
 
 /// Create a copy of DeviceInfoState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? checkNotJailBrokenStatus = null,Object? checkRealDeviceStatus = null,Object? checkRealLocationStatus = null,Object? projectInfoStatus = null,Object? projectInfo = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? checkNotJailBrokenStatus = null,Object? checkRealDeviceStatus = null,Object? checkRealLocationStatus = null,Object? projectInfoStatus = null,Object? projectInfo = null,Object? deviceName = null,}) {
   return _then(_Initial(
 checkNotJailBrokenStatus: null == checkNotJailBrokenStatus ? _self.checkNotJailBrokenStatus : checkNotJailBrokenStatus // ignore: cast_nullable_to_non_nullable
 as VarStatus,checkRealDeviceStatus: null == checkRealDeviceStatus ? _self.checkRealDeviceStatus : checkRealDeviceStatus // ignore: cast_nullable_to_non_nullable
 as VarStatus,checkRealLocationStatus: null == checkRealLocationStatus ? _self.checkRealLocationStatus : checkRealLocationStatus // ignore: cast_nullable_to_non_nullable
 as VarStatus,projectInfoStatus: null == projectInfoStatus ? _self.projectInfoStatus : projectInfoStatus // ignore: cast_nullable_to_non_nullable
 as VarStatus,projectInfo: null == projectInfo ? _self.projectInfo : projectInfo // ignore: cast_nullable_to_non_nullable
-as PackageInfo,
+as PackageInfo,deviceName: null == deviceName ? _self.deviceName : deviceName // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:finora/application/finance/finance_cubit.dart';
 import 'package:finora/common/extensions/format_extensions.dart';
 import 'package:finora/common/theme/category_icons.dart';
@@ -78,8 +79,10 @@ class _CategorySheetState extends State<CategorySheet> {
       isIncome: widget.isIncome,
       limit: widget.isIncome || limit == 0 ? null : limit,
     );
-    await context.read<FinanceCubit>().facade.saveCategory(category);
-    if (!mounted) return;
+    final finance = context.read<FinanceCubit>().facade;
+    if (!await apiRun(() => finance.saveCategory(category)) || !mounted) {
+      return;
+    }
     Navigator.of(context).pop();
     AppToast.success(
       _isEdit ? Words.categoryUpdated.str : Words.categoryAdded.str,
@@ -87,10 +90,19 @@ class _CategorySheetState extends State<CategorySheet> {
   }
 
   Future<void> _delete() async {
-    await context.read<FinanceCubit>().facade.deleteCategory(
-      widget.category!.id,
+    final finance = context.read<FinanceCubit>().facade;
+    final id = widget.category!.id;
+    // Transactions of a deleted category move to the default one of its type.
+    final fallback = widget.isIncome ? 'salary' : 'groceries';
+    final ok = await apiRun(
+      () => finance.deleteCategory(
+        id,
+        reassignTo: finance.snapshot.transactionCount(id) > 0 && id != fallback
+            ? fallback
+            : null,
+      ),
     );
-    if (!mounted) return;
+    if (!ok || !mounted) return;
     Navigator.of(context).pop();
     AppToast.success(Words.categoryDeleted.str);
   }

@@ -1,3 +1,7 @@
+import 'package:finora/di.dart';
+import 'package:finora/common/extensions/format_extensions.dart';
+import 'package:finora/domain/models/profile/profile_models.dart';
+import 'package:finora/domain/facades/profile_facade.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:finora/application/device_info/device_info_cubit.dart';
 import 'package:finora/common/theme/core/functions.dart';
@@ -25,8 +29,8 @@ class HelpPage extends StatefulWidget {
 }
 
 class _HelpPageState extends State<HelpPage> {
-  // FAQ content comes from the backend later; English for now.
-  static const _faqs = [
+  // Shown until `GET /help/faq` answers (or when it fails).
+  static const _fallbackFaqs = [
     (
       'How do I add a card?',
       'Open Profile → Accounts & cards and tap +. Enter the card number and confirm with the SMS code from your bank.',
@@ -51,6 +55,28 @@ class _HelpPageState extends State<HelpPage> {
 
   final _search = TextEditingController();
   int? _open = 0;
+  var _faqs = _fallbackFaqs;
+  var _contacts = const SupportContacts(
+    email: 'help@finora.uz',
+    phone: '+998712000000',
+    telegram: 'finora_support',
+    liveChat: false,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    final profile = di<ProfileFacade>();
+    profile.faq().then((list) {
+      if (!mounted || list.isEmpty) return;
+      setState(
+        () => _faqs = [for (final f in list) (f.question, f.answer)],
+      );
+    }, onError: (_) {});
+    profile.contacts().then((v) {
+      if (mounted) setState(() => _contacts = v);
+    }, onError: (_) {});
+  }
 
   @override
   void dispose() {
@@ -90,22 +116,22 @@ class _HelpPageState extends State<HelpPage> {
         FinoraIcons.send,
         AppPalette.catTransfer,
         'Telegram',
-        '@finora_support',
-        () => _launch('https://t.me/finora_support'),
+        '@${_contacts.telegram}',
+        () => _launch('https://t.me/${_contacts.telegram}'),
       ),
       (
         FinoraIcons.phone,
         AppPalette.catBills,
         Words.callUs.str,
-        '+998 71 200 00 00',
-        () => _launch('tel:+998712000000'),
+        _contacts.phone.toPhone(),
+        () => _launch('tel:${_contacts.phone}'),
       ),
       (
         FinoraIcons.mail,
         AppPalette.catFood,
         Words.email.str,
-        'help@finora.uz',
-        () => _launch('mailto:help@finora.uz'),
+        _contacts.email,
+        () => _launch('mailto:${_contacts.email}'),
       ),
     ];
 

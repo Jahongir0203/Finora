@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
+import 'package:finora/application/stats/stats_cubit.dart';
 import 'package:finora/common/extensions/format_extensions.dart';
 import 'package:finora/common/theme/category_icons.dart';
 import 'package:finora/common/theme/core/functions.dart';
@@ -13,35 +14,35 @@ import 'package:finora/common/widgets/app_pressable.dart';
 import 'package:finora/common/widgets/app_segment_control.dart';
 import 'package:finora/common/widgets/category_chip.dart';
 import 'package:finora/common/words/words.dart';
+import 'package:finora/di.dart';
+import 'package:finora/domain/models/stats/stats_data.dart';
 import 'package:finora/presentation/pages/auth/widgets/auth_back_button.dart';
 import 'package:finora/presentation/pages/main/main_actions.dart';
 import 'package:finora/presentation/pages/pin/widgets/pin_badge.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'stats_data.dart';
 import 'widgets/category_donut.dart';
 import 'widgets/spending_trend_chart.dart';
 
 /// Statistics tab (docs/screens/STATS_INSIGHTS.md §1).
 @RoutePage()
-class StatsPage extends StatefulWidget {
+class StatsPage extends StatelessWidget implements AutoRouteWrapper {
   const StatsPage({super.key});
 
   @override
-  State<StatsPage> createState() => _StatsPageState();
-}
-
-class _StatsPageState extends State<StatsPage> {
-  var _period = StatsPeriod.month;
+  Widget wrappedRoute(BuildContext context) =>
+      BlocProvider(create: (_) => di<StatsCubit>()..load(), child: this);
 
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
-    final snapshot = context.watch<FinanceCubit>().state;
+    final state = context.watch<StatsCubit>().state;
+    final data = state.current;
     // New users see the empty state until there is data to chart.
-    final empty = snapshot.transactions.isEmpty;
+    final empty = data != null && !data.hasEnoughData;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: authOverlayStyle(context),
@@ -76,15 +77,34 @@ class _StatsPageState extends State<StatsPage> {
                   AppSegmentControl(
                     height: 36,
                     trackColor: c.border,
-                    index: _period.index,
+                    index: state.period.index,
                     children: [Words.week.str, Words.month.str, Words.year.str],
-                    onChanged: (i) =>
-                        setState(() => _period = StatsPeriod.values[i]),
+                    onChanged: (i) => context.read<StatsCubit>().setPeriod(
+                      StatsPeriod.values[i],
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  _DonutCard(period: _period),
-                  const SizedBox(height: AppSpacing.lg),
-                  _TrendCard(period: _period),
+                  if (data != null) ...[
+                    _DonutCard(data: data),
+                    const SizedBox(height: AppSpacing.lg),
+                    _TrendCard(data: data),
+                  ] else if (state.failed)
+                    Padding(
+                      padding: const .only(top: 48),
+                      child: Center(
+                        child: AppButton.secondary(
+                          text: Words.tryAgain.str,
+                          size: AppButtonSize.small,
+                          expanded: false,
+                          onPressed: context.read<StatsCubit>().load,
+                        ),
+                      ),
+                    )
+                  else
+                    const Padding(
+                      padding: .only(top: 64),
+                      child: CupertinoActivityIndicator(),
+                    ),
                 ],
               ],
             ),
@@ -133,16 +153,17 @@ class _AiTipsButton extends StatelessWidget {
 }
 
 class _DonutCard extends StatelessWidget {
-  final StatsPeriod period;
+  final StatsData data;
 
-  const _DonutCard({required this.period});
+  const _DonutCard({required this.data});
 
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
     final snapshot = context.watch<FinanceCubit>().state;
-    final rows = statsBreakdown(period);
-    final total = rows.fold<num>(0, (s, e) => s + e.$2);
+    final rows = [for (final b in data.breakdown) (b.categoryId, b.amount)];
+    final total = data.totalSpent;
+    final pcts = [for (final b in data.breakdown) b.pct];
     final categories = [for (final (id, _) in rows) snapshot.category(id)];
 
     return _StatsCard(
@@ -188,7 +209,7 @@ class _DonutCard extends StatelessWidget {
                         SizedBox(
                           width: 40,
                           child: Text(
-                            '${(v / total * 100).round()}%',
+                            '${pcts[i]}%',
                             textAlign: .right,
                             style: AppTypography.caption.copyWith(
                               color: c.textTertiary,
@@ -216,13 +237,14 @@ class _DonutCard extends StatelessWidget {
 }
 
 class _TrendCard extends StatelessWidget {
-  final StatsPeriod period;
+  final StatsData data;
 
-  const _TrendCard({required this.period});
+  const _TrendCard({required this.data});
 
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
+    final change = data.changePct;
 
     return _StatsCard(
       child: Column(
@@ -237,25 +259,27 @@ class _TrendCard extends StatelessWidget {
                   style: context.textStyles.titleSmall,
                 ),
               ),
-              Icon(
-                FinoraIcons.trendDown,
-                size: AppSizes.iconSm,
-                color: c.primaryText,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                Words.vsLast.tr(args: ['8']),
-                style: AppTypography.caption.copyWith(
-                  fontWeight: .w600,
-                  color: c.primaryText,
+              if (change != null) ...[
+                Icon(
+                  change > 0 ? FinoraIcons.trendUp : FinoraIcons.trendDown,
+                  size: AppSizes.iconSm,
+                  color: change > 0 ? c.danger : c.primaryText,
                 ),
-              ),
+                const SizedBox(width: 4),
+                Text(
+                  Words.vsLast.tr(args: ['${change.abs()}']),
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: .w600,
+                    color: change > 0 ? c.danger : c.primaryText,
+                  ),
+                ),
+              ],
             ],
           ),
           SpendingTrendChart(
-            key: ValueKey(period),
-            bars: statsTrend(period),
-            current: statsCurrentBar(period),
+            key: ValueKey(data.period),
+            bars: [for (final b in data.bars) (b.label, b.value.toDouble())],
+            current: data.currentBar,
           ),
         ],
       ),

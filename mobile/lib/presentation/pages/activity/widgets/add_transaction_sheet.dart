@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:finora/application/finance/finance_cubit.dart';
 import 'package:finora/common/extensions/format_extensions.dart';
 import 'package:finora/common/theme/core/functions.dart';
@@ -70,11 +71,13 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
 
   Future<void> _save(String categoryId) async {
     final finance = context.read<FinanceCubit>().facade;
-    await finance.addTransaction(
-      categoryId: categoryId,
-      amount: _income ? _amount : -_amount,
+    final ok = await apiRun(
+      () => finance.addTransaction(
+        categoryId: categoryId,
+        amount: _income ? _amount : -_amount,
+      ),
     );
-    if (!mounted) return;
+    if (!ok || !mounted) return;
     Navigator.of(context).pop();
     AppToast.success(Words.transactionSaved.str);
   }

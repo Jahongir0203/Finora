@@ -2,8 +2,7 @@
 class HomeData {
   final String userName;
 
-  /// True right after onboarding. The server flips it once the checklist
-  /// is complete (or after ~7 days of data).
+  /// True until the Get started checklist is complete (`get_started`).
   final bool isNew;
 
   /// False when the user skipped Starting balance.
@@ -14,9 +13,12 @@ class HomeData {
   /// Positive number.
   final num monthExpenses;
 
-  final int transactionsCount;
-  final int goalsCount;
-  final int remindersCount;
+  final bool hasTransactions;
+  final bool hasGoals;
+  final bool hasReminders;
+
+  /// Bell badge.
+  final int unreadNotifications;
 
   /// Newest first, at most 4.
   final List<TransactionItem> recentTransactions;
@@ -38,9 +40,10 @@ class HomeData {
     required this.balance,
     required this.monthIncome,
     required this.monthExpenses,
-    required this.transactionsCount,
-    required this.goalsCount,
-    required this.remindersCount,
+    required this.hasTransactions,
+    required this.hasGoals,
+    required this.hasReminders,
+    this.unreadNotifications = 0,
     required this.recentTransactions,
     required this.upcomingPayments,
     required this.fetchedAt,
@@ -50,9 +53,9 @@ class HomeData {
 
   bool isStepDone(ChecklistStep step) => switch (step) {
     .balance => balanceSet,
-    .transaction => transactionsCount > 0,
-    .goal => goalsCount > 0,
-    .reminder => remindersCount > 0,
+    .transaction => hasTransactions,
+    .goal => hasGoals,
+    .reminder => hasReminders,
   };
 
   int get checklistDone => ChecklistStep.values.where(isStepDone).length;
@@ -72,7 +75,7 @@ class TransactionItem {
   final String id;
   final String title;
 
-  /// `AppCategory.name`, or e.g. `salary` for income.
+  /// Category id (`groceries`, `salary`, or a user category uuid).
   final String category;
   final String categoryLabel;
 

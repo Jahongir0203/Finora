@@ -7,7 +7,8 @@ import 'package:finora/common/widgets/app_shake.dart';
 import 'package:finora/common/widgets/app_toast.dart';
 import 'package:finora/common/words/words.dart';
 import 'package:finora/di.dart';
-import 'package:finora/domain/facades/finance_facade.dart';
+import 'package:finora/domain/facades/auth_facade.dart';
+import 'package:finora/infrastructure/services/cache/secure_cache.dart';
 import 'package:finora/infrastructure/services/security/auto_lock_service.dart';
 import 'package:finora/infrastructure/services/security/biometric_service.dart';
 import 'package:finora/infrastructure/services/security/pin_service.dart';
@@ -58,12 +59,16 @@ class _PinLockPageState extends State<PinLockPage> {
   var _attemptsLeft = PinService.maxAttempts;
   var _busy = false;
   var _faceAvailable = false;
+  var _name = '';
 
   @override
   void initState() {
     super.initState();
     _autoLock.locked = true;
     _initBiometrics();
+    di<SecureCache>().userName.then((v) {
+      if (mounted) setState(() => _name = v);
+    });
   }
 
   Future<void> _initBiometrics() async {
@@ -105,10 +110,12 @@ class _PinLockPageState extends State<PinLockPage> {
     if (left == null) return _unlock();
 
     if (left <= 0) {
-      await di<SessionService>().signOut();
+      // The server revokes the session; the local one is removed anyway.
+      await di<AuthFacade>().reportPinLockout().catchError((_) {});
+      await di<SessionService>().signOut(remote: false);
       if (!mounted) return;
       AppToast.error(Words.tooManyPinAttempts.str);
-      context.router.replaceAll([const SignInRoute()]);
+      context.router.replaceAll([SignInRoute()]);
       return;
     }
 
@@ -138,14 +145,17 @@ class _PinLockPageState extends State<PinLockPage> {
     setState(() => _status = .idle);
   }
 
-  void _forgot() {
+  Future<void> _forgot() async {
+    // The server drops the old session after the code (purpose: pin_reset).
+    await di<PinService>().clear();
+    if (!mounted) return;
     AppToast.info(Words.verifyPhoneToReset.str);
-    context.router.replaceAll([const SignInRoute()]);
+    context.router.replaceAll([SignInRoute(pinReset: true)]);
   }
 
   @override
   Widget build(BuildContext context) {
-    final name = di<FinanceFacade>().snapshot.userName;
+    final name = _name;
     final (status, statusColor) = switch (_status) {
       .idle => (Words.enterPinToContinue.str, AppPalette.primary200),
       .scanning => (Words.scanningFace.str, AppPalette.primary200),

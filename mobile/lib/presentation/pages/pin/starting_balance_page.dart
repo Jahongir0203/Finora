@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:finora/common/theme/core/functions.dart';
 import 'package:finora/common/widgets/app_button.dart';
@@ -52,8 +53,13 @@ class _StartingBalancePageState extends State<StartingBalancePage> {
   }
 
   Future<void> _continue() async {
-    await di<FinanceFacade>().setStartingBalance(_amount, location: _location);
-    if (!mounted) return;
+    final ok = await apiRun(
+      () => di<FinanceFacade>().setStartingBalance(
+        _amount,
+        location: _location,
+      ),
+    );
+    if (!ok || !mounted) return;
     AppToast.success(Words.balanceSavedWelcome.str);
     context.router.replaceAll([const MainRoute()]);
   }

@@ -11,6 +11,7 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:auto_route/auto_route.dart' as _i27;
+import 'package:finora/domain/models/auth/verify_result.dart' as _i30;
 import 'package:finora/presentation/pages/activity/activity_page.dart' as _i2;
 import 'package:finora/presentation/pages/auth/auth_page.dart' as _i3;
 import 'package:finora/presentation/pages/auth/onboarding/onboarding_page.dart'
@@ -132,10 +133,15 @@ class CreatePinRoute extends _i27.PageRouteInfo<CreatePinRouteArgs> {
   CreatePinRoute({
     _i28.Key? key,
     bool change = false,
+    bool askBalance = true,
     List<_i27.PageRouteInfo>? children,
   }) : super(
          CreatePinRoute.name,
-         args: CreatePinRouteArgs(key: key, change: change),
+         args: CreatePinRouteArgs(
+           key: key,
+           change: change,
+           askBalance: askBalance,
+         ),
          initialChildren: children,
        );
 
@@ -147,32 +153,44 @@ class CreatePinRoute extends _i27.PageRouteInfo<CreatePinRouteArgs> {
       final args = data.argsAs<CreatePinRouteArgs>(
         orElse: () => const CreatePinRouteArgs(),
       );
-      return _i6.CreatePinPage(key: args.key, change: args.change);
+      return _i6.CreatePinPage(
+        key: args.key,
+        change: args.change,
+        askBalance: args.askBalance,
+      );
     },
   );
 }
 
 class CreatePinRouteArgs {
-  const CreatePinRouteArgs({this.key, this.change = false});
+  const CreatePinRouteArgs({
+    this.key,
+    this.change = false,
+    this.askBalance = true,
+  });
 
   final _i28.Key? key;
 
   final bool change;
 
+  final bool askBalance;
+
   @override
   String toString() {
-    return 'CreatePinRouteArgs{key: $key, change: $change}';
+    return 'CreatePinRouteArgs{key: $key, change: $change, askBalance: $askBalance}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! CreatePinRouteArgs) return false;
-    return key == other.key && change == other.change;
+    return key == other.key &&
+        change == other.change &&
+        askBalance == other.askBalance;
   }
 
   @override
-  int get hashCode => key.hashCode ^ change.hashCode;
+  int get hashCode => key.hashCode ^ change.hashCode ^ askBalance.hashCode;
 }
 
 /// generated route for
@@ -533,18 +551,53 @@ class ScanRoute extends _i27.PageRouteInfo<void> {
 
 /// generated route for
 /// [_i21.SignInPage]
-class SignInRoute extends _i27.PageRouteInfo<void> {
-  const SignInRoute({List<_i27.PageRouteInfo>? children})
-    : super(SignInRoute.name, initialChildren: children);
+class SignInRoute extends _i27.PageRouteInfo<SignInRouteArgs> {
+  SignInRoute({
+    _i28.Key? key,
+    bool pinReset = false,
+    List<_i27.PageRouteInfo>? children,
+  }) : super(
+         SignInRoute.name,
+         args: SignInRouteArgs(key: key, pinReset: pinReset),
+         initialChildren: children,
+       );
 
   static const String name = 'SignInRoute';
 
   static _i27.PageInfo page = _i27.PageInfo(
     name,
     builder: (data) {
-      return _i27.WrappedRoute(child: const _i21.SignInPage());
+      final args = data.argsAs<SignInRouteArgs>(
+        orElse: () => const SignInRouteArgs(),
+      );
+      return _i27.WrappedRoute(
+        child: _i21.SignInPage(key: args.key, pinReset: args.pinReset),
+      );
     },
   );
+}
+
+class SignInRouteArgs {
+  const SignInRouteArgs({this.key, this.pinReset = false});
+
+  final _i28.Key? key;
+
+  final bool pinReset;
+
+  @override
+  String toString() {
+    return 'SignInRouteArgs{key: $key, pinReset: $pinReset}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SignInRouteArgs) return false;
+    return key == other.key && pinReset == other.pinReset;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ pinReset.hashCode;
 }
 
 /// generated route for
@@ -590,7 +643,7 @@ class StatsRoute extends _i27.PageRouteInfo<void> {
   static _i27.PageInfo page = _i27.PageInfo(
     name,
     builder: (data) {
-      return const _i24.StatsPage();
+      return _i27.WrappedRoute(child: const _i24.StatsPage());
     },
   );
 }
@@ -617,10 +670,17 @@ class VerifyCodeRoute extends _i27.PageRouteInfo<VerifyCodeRouteArgs> {
   VerifyCodeRoute({
     _i29.Key? key,
     required String phone,
+    bool pinReset = false,
+    _i30.OtpSent? sent,
     List<_i27.PageRouteInfo>? children,
   }) : super(
          VerifyCodeRoute.name,
-         args: VerifyCodeRouteArgs(key: key, phone: phone),
+         args: VerifyCodeRouteArgs(
+           key: key,
+           phone: phone,
+           pinReset: pinReset,
+           sent: sent,
+         ),
          initialChildren: children,
        );
 
@@ -631,31 +691,49 @@ class VerifyCodeRoute extends _i27.PageRouteInfo<VerifyCodeRouteArgs> {
     builder: (data) {
       final args = data.argsAs<VerifyCodeRouteArgs>();
       return _i27.WrappedRoute(
-        child: _i26.VerifyCodePage(key: args.key, phone: args.phone),
+        child: _i26.VerifyCodePage(
+          key: args.key,
+          phone: args.phone,
+          pinReset: args.pinReset,
+          sent: args.sent,
+        ),
       );
     },
   );
 }
 
 class VerifyCodeRouteArgs {
-  const VerifyCodeRouteArgs({this.key, required this.phone});
+  const VerifyCodeRouteArgs({
+    this.key,
+    required this.phone,
+    this.pinReset = false,
+    this.sent,
+  });
 
   final _i29.Key? key;
 
   final String phone;
 
+  final bool pinReset;
+
+  final _i30.OtpSent? sent;
+
   @override
   String toString() {
-    return 'VerifyCodeRouteArgs{key: $key, phone: $phone}';
+    return 'VerifyCodeRouteArgs{key: $key, phone: $phone, pinReset: $pinReset, sent: $sent}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! VerifyCodeRouteArgs) return false;
-    return key == other.key && phone == other.phone;
+    return key == other.key &&
+        phone == other.phone &&
+        pinReset == other.pinReset &&
+        sent == other.sent;
   }
 
   @override
-  int get hashCode => key.hashCode ^ phone.hashCode;
+  int get hashCode =>
+      key.hashCode ^ phone.hashCode ^ pinReset.hashCode ^ sent.hashCode;
 }

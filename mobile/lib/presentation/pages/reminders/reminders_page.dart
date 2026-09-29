@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
@@ -256,8 +257,10 @@ class _ReminderTile extends StatelessWidget {
             large: true,
             value: r.enabled,
             semanticLabel: r.title,
-            onChanged: (v) =>
-                context.read<FinanceCubit>().facade.setReminderEnabled(r.id, v),
+            onChanged: (v) {
+              final finance = context.read<FinanceCubit>().facade;
+              apiRun(() => finance.setReminderEnabled(r.id, v));
+            },
           ),
         ],
       ),

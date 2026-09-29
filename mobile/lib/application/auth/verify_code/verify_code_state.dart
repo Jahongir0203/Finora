@@ -35,10 +35,18 @@ abstract class VerifyCodeState with _$VerifyCodeState {
 
     /// Incremented on unexpected errors (network, server).
     @Default(0) int failureTick,
+    String? failureMessage,
+
+    /// Incremented when the code expired (resend is enabled right away).
+    @Default(0) int expiredTick,
 
     /// Incremented when a new code was sent.
     @Default(0) int resentTick,
     VerifyResult? result,
+
+    /// "Forgot PIN" flow: verify with `purpose: pin_reset`.
+    @Default(false) bool pinReset,
+    String? telegramBotUrl,
   }) = _Initial;
 
   bool get canType => phase == .input && result == null;

@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../infrastructure/services/device/device_info_service.dart';
 import '../var_status.dart';
 
 part 'device_info_cubit.freezed.dart';
@@ -11,7 +12,9 @@ part 'device_info_state.dart';
 
 @Injectable()
 class DeviceInfoCubit extends Cubit<DeviceInfoState> {
-  DeviceInfoCubit()
+  final DeviceInfoService _device;
+
+  DeviceInfoCubit(this._device)
     : super(
         DeviceInfoState.initial(
           projectInfo: PackageInfo(
@@ -62,6 +65,12 @@ class DeviceInfoCubit extends Cubit<DeviceInfoState> {
   Future<void> projectInfo() async {
     emit(state.copyWith(projectInfoStatus: .loading()));
     final value = await PackageInfo.fromPlatform();
-    emit(state.copyWith(projectInfoStatus: .success(), projectInfo: value));
+    emit(
+      state.copyWith(
+        projectInfoStatus: .success(),
+        projectInfo: value,
+        deviceName: await _device.deviceName(),
+      ),
+    );
   }
 }

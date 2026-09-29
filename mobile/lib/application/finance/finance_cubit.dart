@@ -16,6 +16,16 @@ class FinanceCubit extends Cubit<FinanceSnapshot> {
     _sub = facade.changes.listen(emit);
   }
 
+  /// Returns `false` when loading failed (the old data stays).
+  Future<bool> load() async {
+    try {
+      await facade.refresh();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Future<void> close() {
     _sub.cancel();

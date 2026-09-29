@@ -18,6 +18,7 @@ dependencies:
   crypto: ^3.0.6
   cupertino_icons: ^1.0.9
   dartz: ^0.10.1
+  device_info_plus: ^12.4.0
   dio: ^5.10.0
   dio_cache_interceptor: ^4.0.7
   easy_localization: ^3.0.8
@@ -28,6 +29,7 @@ dependencies:
   flutter_image_compress: ^2.4.0
   flutter_secure_storage: ^10.3.1
   flutter_svg: ^2.3.0
+  flutter_timezone: ^5.1.0
   fluttertoast: ^9.1.0
   freezed_annotation: ^3.0.0
   get_it: ^9.2.1
@@ -48,6 +50,7 @@ dependencies:
   shimmer: ^3.0.0
   sqflite: ^2.4.3
   url_launcher: ^6.3.2 # Should add configuration to android and ios, remove comment
+  uuid: ^4.6.0
   video_player: ^2.11.1
   webview_flutter: ^4.14.0
   widget_and_text_animator: ^1.1.5

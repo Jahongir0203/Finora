@@ -1,3 +1,4 @@
+import 'package:finora/common/helpers/api_call.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
 import 'package:finora/application/finance/finance_cubit.dart';
@@ -130,11 +131,14 @@ class GoalDetailsPage extends StatelessWidget {
                       trailing: AppSwitch(
                         value: goal.autoSave != null,
                         semanticLabel: Words.autoSave.str,
-                        onChanged: (on) {
-                          finance.setGoalAutoSave(
-                            goal.id,
-                            on ? _autoSaveAmount : null,
+                        onChanged: (on) async {
+                          final ok = await apiRun(
+                            () => finance.setGoalAutoSave(
+                              goal.id,
+                              on ? _autoSaveAmount : null,
+                            ),
                           );
+                          if (!ok) return;
                           AppToast.success(
                             on
                                 ? Words.autoSaveOnToast.tr(
@@ -150,33 +154,77 @@ class GoalDetailsPage extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x2l),
                 Text(Words.history.str, style: context.textStyles.titleSmall),
                 const SizedBox(height: AppSpacing.md),
-                if (goal.history.isEmpty)
-                  AppCard.dashed(
-                    child: Text(
-                      Words.noDepositsYet.str,
-                      textAlign: .center,
-                      style: AppTypography.body.copyWith(
-                        fontSize: 14,
-                        color: c.textTertiary,
-                      ),
-                    ),
-                  )
-                else
-                  AppListCard(
-                    children: [
-                      for (final (i, e) in goal.history.indexed)
-                        AppFadeIn(
-                          index: i,
-                          step: const Duration(milliseconds: 40),
-                          child: _HistoryRow(entry: e),
-                        ),
-                    ],
-                  ),
+                _GoalHistory(goal: goal),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// `GET /goals/{id}/history`, reloaded when the saved amount changes.
+class _GoalHistory extends StatefulWidget {
+  final Goal goal;
+
+  const _GoalHistory({required this.goal});
+
+  @override
+  State<_GoalHistory> createState() => _GoalHistoryState();
+}
+
+class _GoalHistoryState extends State<_GoalHistory> {
+  List<GoalEntry>? _history;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_GoalHistory old) {
+    super.didUpdateWidget(old);
+    if (old.goal.saved != widget.goal.saved) _load();
+  }
+
+  Future<void> _load() async {
+    final finance = context.read<FinanceCubit>().facade;
+    try {
+      final items = await finance.goalHistory(widget.goal.id);
+      if (mounted) setState(() => _history = items);
+    } catch (_) {
+      if (mounted) setState(() => _history ??= const []);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.appColors;
+    final history = _history;
+    if (history == null) return const SizedBox(height: 64);
+    if (history.isEmpty) {
+      return AppCard.dashed(
+        child: Text(
+          Words.noDepositsYet.str,
+          textAlign: .center,
+          style: AppTypography.body.copyWith(
+            fontSize: 14,
+            color: c.textTertiary,
+          ),
+        ),
+      );
+    }
+    return AppListCard(
+      children: [
+        for (final (i, e) in history.indexed)
+          AppFadeIn(
+            index: i,
+            step: const Duration(milliseconds: 40),
+            child: _HistoryRow(entry: e),
+          ),
+      ],
     );
   }
 }

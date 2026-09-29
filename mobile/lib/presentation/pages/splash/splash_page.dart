@@ -44,7 +44,7 @@ class _SplashPageState extends State<SplashPage> {
     _navigated = true;
     _timer?.cancel();
 
-    final route = switch (destination) {
+    final PageRouteInfo route = switch (destination) {
       .onboarding => const OnboardingRoute(),
       .signIn => SignInRoute(),
       .lock => PinLockRoute(),

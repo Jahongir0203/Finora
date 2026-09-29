@@ -88,6 +88,14 @@ class SqlNotificationRepository:
         )
         return result.rowcount or 0  # type: ignore[attr-defined]
 
+    async def delete(self, user_id: UUID, notification_id: UUID, at: datetime) -> bool:
+        result = await self._s.execute(
+            update(N).where(N.id == notification_id, N.user_id == user_id,
+                            N.deleted_at.is_(None))
+            .values(deleted_at=at, read_at=func.coalesce(N.read_at, at))
+        )
+        return bool(result.rowcount)  # type: ignore[attr-defined]
+
     async def pending_push(self, limit: int) -> list[Notification]:
         rows = await self._s.scalars(
             select(N).where(N.push_status == PushStatus.PENDING.value)

@@ -10,29 +10,24 @@ import 'package:finora/common/widgets/app_pressable.dart';
 import 'package:finora/common/widgets/app_segment_control.dart';
 import 'package:finora/common/widgets/app_toast.dart';
 import 'package:finora/common/words/words.dart';
+import 'package:finora/di.dart';
+import 'package:finora/domain/facades/exports_facade.dart';
+import 'package:finora/domain/models/exports/export_models.dart';
+import 'package:finora/infrastructure/services/http/api_client.dart';
 import 'package:finora/presentation/pages/pin/widgets/pin_badge.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-enum _Period { daily, weekly, monthly, yearly }
-
-enum _Format {
-  pdf('pdf', '1.2 MB'),
-  excel('xlsx', '86 KB'),
-  csv('csv', '24 KB');
-
-  final String ext;
-  final String size;
-
-  const _Format(this.ext, this.size);
-}
+typedef _Period = ExportPeriod;
+typedef _Format = ExportFormat;
 
 enum _Stage { form, progress, done }
 
 /// Export report: form → "Preparing…" → "Report ready"
 /// (docs/screens/ACTIVITY_SCAN.md §4).
 ///
-/// Figures are mock values from the spec.
-// TODO: generate the file via `/export` and share it with share_plus.
+/// Figures come from `GET /exports/preview`; the file is rendered by the
+/// server and opened via its one-time download link.
 class ExportSheet extends StatefulWidget {
   const ExportSheet({super.key});
 
@@ -49,6 +44,16 @@ class _ExportSheetState extends State<ExportSheet>
   var _format = _Format.pdf;
   var _stage = _Stage.form;
   final _include = {'expenses': true, 'income': true, 'transfers': true};
+  final _exports = di<ExportsFacade>();
+  ExportPreview? _preview;
+  ExportFile? _file;
+
+  /// Server names of the selected types.
+  ExportInclude get _types => {
+    if (_include['expenses']!) 'expense',
+    if (_include['income']!) 'income',
+    if (_include['transfers']!) 'transfer',
+  };
 
   // Created eagerly: a lazy controller would first be built in dispose()
   // when the sheet closes without exporting.
@@ -61,15 +66,24 @@ class _ExportSheetState extends State<ExportSheet>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     );
+    _loadPreview();
   }
 
-  // (count, income, expense) per period.
-  static const _data = {
-    _Period.daily: (2, 12500000, 186400),
-    _Period.weekly: (8, 13000000, 767400),
-    _Period.monthly: (64, 13000000, 5460000),
-    _Period.yearly: (712, 117000000, 52900000),
-  };
+  Future<void> _loadPreview() async {
+    if (!_valid) return;
+    final period = _period, types = _types, format = _format;
+    try {
+      final preview = await _exports.preview(period, types, format);
+      // Ignore answers for a selection the user already changed.
+      if (!mounted || period != _period || format != _format) return;
+      setState(() => _preview = preview);
+    } catch (_) {}
+  }
+
+  void _update(VoidCallback change) {
+    setState(change);
+    _loadPreview();
+  }
 
   @override
   void dispose() {
@@ -79,42 +93,30 @@ class _ExportSheetState extends State<ExportSheet>
 
   bool get _valid => _include.values.any((v) => v);
 
-  String get _locale => context.locale.languageCode;
-
-  String _range(DateTime now) => switch (_period) {
-    .daily => DateFormat('d MMM y', _locale).format(now),
-    .weekly =>
-      '${DateFormat('d', _locale).format(now.subtract(const Duration(days: 6)))} – '
-          '${DateFormat('d MMM y', _locale).format(now)}',
-    .monthly => DateFormat('MMMM y', _locale).format(now),
-    .yearly =>
-      '${DateFormat('MMMM', _locale).format(DateTime(now.year))} – '
-          '${DateFormat('MMMM y', _locale).format(now)}',
-  };
-
-  String _fileName(DateTime now) {
-    final mon = DateFormat('MMM', 'en').format(now).toLowerCase();
-    final week =
-        ((now.difference(DateTime(now.year)).inDays +
-                    DateTime(now.year).weekday -
-                    1) /
-                7)
-            .floor() +
-        1;
-    final part = switch (_period) {
-      .daily => '${now.day}$mon${now.year}',
-      .weekly => 'w${week}_${now.year}',
-      .monthly => '$mon${now.year}',
-      .yearly => '${now.year}',
-    };
-    return 'finora_${_period.name}_$part.${_format.ext}';
-  }
-
   Future<void> _export() async {
     setState(() => _stage = .progress);
-    await _progress.forward(from: 0);
-    await Future.delayed(const Duration(milliseconds: 100));
-    if (mounted) setState(() => _stage = .done);
+    _progress.repeat();
+    try {
+      final file = await _exports.export(_period, _types, _format);
+      if (!mounted) return;
+      setState(() {
+        _file = file;
+        _stage = .done;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      AppToast.error(apiErrorMessage(e));
+      setState(() => _stage = .form);
+    } finally {
+      _progress.stop();
+    }
+  }
+
+  Future<void> _open() async {
+    final url = _file?.downloadUrl;
+    if (url == null) return;
+    // The link is one-time: the browser downloads and keeps the file.
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
   @override
@@ -136,11 +138,11 @@ class _ExportSheetState extends State<ExportSheet>
 
   Widget _form(BuildContext context) {
     final c = context.appColors;
-    final now = DateTime.now();
-    final (count, rawIncome, rawExpense) = _data[_period]!;
-    final income = _include['income']! ? rawIncome : 0;
-    final expense = _include['expenses']! ? rawExpense : 0;
-    final net = income - expense;
+    final p = _preview;
+    final count = p?.count ?? 0;
+    final income = p?.income ?? 0;
+    final expense = p?.expenses ?? 0;
+    final net = p?.net ?? 0;
 
     final includes = [
       ('expenses', Words.expenses, FinoraIcons.expense),
@@ -149,7 +151,7 @@ class _ExportSheetState extends State<ExportSheet>
     ];
     final formats = [
       (_Format.pdf, 'PDF', Words.formatReport.str, FinoraIcons.fileText),
-      (_Format.excel, 'Excel', '.xlsx', FinoraIcons.fileSheet),
+      (_Format.xlsx, 'Excel', '.xlsx', FinoraIcons.fileSheet),
       (_Format.csv, 'CSV', Words.formatRawData.str, FinoraIcons.file),
     ];
 
@@ -171,7 +173,7 @@ class _ExportSheetState extends State<ExportSheet>
             Words.monthly.str,
             Words.yearly.str,
           ],
-          onChanged: (i) => setState(() => _period = _Period.values[i]),
+          onChanged: (i) => _update(() => _period = _Period.values[i]),
         ),
         const SizedBox(height: AppSpacing.lg),
         Container(
@@ -190,7 +192,7 @@ class _ExportSheetState extends State<ExportSheet>
               ),
               Expanded(
                 child: Text(
-                  _range(now),
+                  p?.rangeLabel ?? '',
                   style: AppTypography.body.copyWith(
                     fontWeight: .w600,
                     color: c.textPrimary,
@@ -239,7 +241,7 @@ class _ExportSheetState extends State<ExportSheet>
                 icon: _include[key]! ? FinoraIcons.check : icon,
                 iconColor: c.textSecondary,
                 height: 38,
-                onTap: () => setState(() => _include[key] = !_include[key]!),
+                onTap: () => _update(() => _include[key] = !_include[key]!),
               ),
           ],
         ),
@@ -254,7 +256,7 @@ class _ExportSheetState extends State<ExportSheet>
                 child: Semantics(
                   selected: f == _format,
                   child: AppPressable(
-                    onTap: () => setState(() => _format = f),
+                    onTap: () => _update(() => _format = f),
                     child: AnimatedContainer(
                       duration: AppMotion.fast,
                       height: 84,
@@ -359,7 +361,7 @@ class _ExportSheetState extends State<ExportSheet>
             style: context.textStyles.titleSmall.copyWith(fontSize: 18),
           ),
           Text(
-            _fileName(DateTime.now()),
+            _preview?.fileName ?? '',
             style: AppTypography.caption.copyWith(color: c.textTertiary),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -423,7 +425,7 @@ class _ExportSheetState extends State<ExportSheet>
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          '${_fileName(DateTime.now())} · ${_format.size}',
+          _file?.fileName ?? '',
           textAlign: .center,
           style: AppTypography.body.copyWith(
             fontSize: 14,
@@ -438,7 +440,7 @@ class _ExportSheetState extends State<ExportSheet>
               child: AppButton.outline(
                 text: Words.share.str,
                 icon: FinoraIcons.share,
-                onPressed: () => AppToast.info(Words.soon.str),
+                onPressed: _open,
               ),
             ),
             Expanded(

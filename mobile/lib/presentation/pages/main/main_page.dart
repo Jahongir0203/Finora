@@ -19,7 +19,7 @@ class MainPage extends StatelessWidget implements AutoRouteWrapper {
   @override
   Widget wrappedRoute(BuildContext context) => MultiBlocProvider(
     providers: [
-      BlocProvider(create: (_) => di<FinanceCubit>()),
+      BlocProvider(create: (_) => di<FinanceCubit>()..load()),
       BlocProvider(create: (_) => di<HomeCubit>()..load()),
       BlocProvider(create: (_) => di<NotificationsCubit>()..load()),
     ],
