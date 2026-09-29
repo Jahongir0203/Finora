@@ -1,6 +1,8 @@
 abstract final class AppEnv {
   static const baseUrl = String.fromEnvironment('BASE_URL');
   static const oneIdUrl = String.fromEnvironment('ONE_ID_URL');
+  static const termsUrl = String.fromEnvironment('TERMS_URL');
+  static const privacyUrl = String.fromEnvironment('PRIVACY_URL');
   static const username = String.fromEnvironment('USERNAME');
   static const password = String.fromEnvironment('PASSWORD');
 

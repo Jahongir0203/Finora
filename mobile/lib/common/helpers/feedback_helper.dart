@@ -60,7 +60,7 @@ abstract final class FeedbackHelper {
                 ),
               CupertinoDialogAction(
                 isDefaultAction: true,
-                textStyle: TextStyle(color: AppColors.of(context).secondary),
+                textStyle: TextStyle(color: AppColors.of(context).primaryText),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: Text(btn1 ?? Words.yes.str),
               ),
@@ -97,14 +97,14 @@ abstract final class FeedbackHelper {
     final context = router.navigatorKey.currentContext!;
     final colors = AppColors.of(context);
     Color backgroundColor;
-    final Color textColor = colors.onSurface;
+    final Color textColor = colors.textPrimary;
 
     switch (type) {
       case .success:
         backgroundColor = colors.success;
         break;
       case .error:
-        backgroundColor = colors.error;
+        backgroundColor = colors.danger;
         break;
       case .info:
         backgroundColor = colors.divider;

@@ -14,19 +14,19 @@ class AuthPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('$this')),
       body: SingleChildScrollView(
-        padding: const .all(AppDimens.spaceSm),
+        padding: const .all(AppSpacing.sm),
         child: Column(
           children: [
             Container(
               width: .infinity,
-              height: AppDimens.iconLg,
+              height: AppSizes.iconLg,
               color: colors.primary,
               decoration: ShapeDecoration(
                 shape: RoundedRectangleBorder(
-                  borderRadius: .circular(AppDimens.radiusLg),
+                  borderRadius: .circular(AppRadius.lg),
                   side: BorderSide(
                     color: colors.border,
-                    width: AppDimens.borderThin,
+                    width: AppSizes.borderThin,
                   ),
                 ),
               ),

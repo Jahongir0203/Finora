@@ -1,19 +1,22 @@
-import 'package:finora/common/extensions/string_extensions.dart';
 import 'package:finora/presentation/routes/app_router.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import '../colors.dart';
 import '../text_styles.dart';
 import 'schemas.dart';
 
 export '../colors.dart';
 export '../dimens.dart';
+export '../categories.dart';
+export '../icons.dart';
+export '../motion.dart';
+export '../palette.dart';
 export '../text_styles.dart';
 export 'schemas.dart';
 
 abstract final class AppColors {
-  static final AppColorSchema light = LightColorScheme();
-  static final AppColorSchema dark = LightColorScheme();
+  static const AppColorSchema light = LightColorScheme();
+  static const AppColorSchema dark = DarkColorScheme();
 
   static AppColorSchema of(BuildContext context) =>
       Theme.of(context).brightness == .dark ? dark : light;
@@ -24,34 +27,6 @@ abstract final class AppColors {
   static AppColorSchema withoutContext() {
     final context = router.navigatorKey.currentState!.context;
     return Theme.of(context).brightness == .dark ? dark : light;
-  }
-
-  static ThemeData theme(Brightness brightness) {
-    final colors = withBrightness(brightness);
-
-    return ThemeData(
-      useMaterial3: true,
-      textTheme: GoogleFonts.interTextTheme(),
-      fontFamily: GoogleFonts.inter().fontFamily?.toTitleCase(),
-      hintColor: colors.hint,
-      shadowColor: colors.hint,
-      dividerColor: colors.divider,
-      scaffoldBackgroundColor: colors.scaffoldBackground,
-      colorScheme: ColorScheme(
-        brightness: brightness,
-        primary: colors.primary,
-        secondary: colors.secondary,
-        error: colors.error,
-        surface: colors.surface,
-        onPrimary: colors.onPrimary,
-        onSecondary: colors.onSecondary,
-        onError: colors.onError,
-        onSurface: colors.onSurface,
-        outline: colors.border,
-        onSurfaceVariant: colors.hint,
-        outlineVariant: colors.divider,
-      ),
-    );
   }
 }
 

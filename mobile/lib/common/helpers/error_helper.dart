@@ -171,7 +171,7 @@ class _ErrorPageState extends State<_ErrorPage>
               child: Container(
                 padding: const .all(16),
                 decoration: BoxDecoration(
-                  color: colors.error.withAlpha(210),
+                  color: colors.danger.withAlpha(210),
                   borderRadius: .circular(12),
                 ),
                 child: Row(
@@ -181,7 +181,7 @@ class _ErrorPageState extends State<_ErrorPage>
                         widget.message,
                         textAlign: .center,
                         style: TextStyle(
-                          color: colors.onError,
+                          color: colors.onDanger,
                           fontSize: 14,
                           fontWeight: .w500,
                         ),
@@ -189,7 +189,7 @@ class _ErrorPageState extends State<_ErrorPage>
                     ),
                     IconButton(
                       onPressed: widget.onDismiss,
-                      icon: Icon(Icons.close, color: colors.onError),
+                      icon: Icon(Icons.close, color: colors.onDanger),
                     ),
                   ],
                 ),
