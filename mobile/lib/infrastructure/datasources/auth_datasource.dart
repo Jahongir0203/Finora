@@ -40,6 +40,7 @@ class AuthDatasource implements AuthFacade {
         ),
       );
     } catch (e) {
+      print(e.toString());
       return left(_failure(e));
     }
   }

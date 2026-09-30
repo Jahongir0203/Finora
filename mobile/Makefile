@@ -99,6 +99,7 @@ build-prod:
 
 # Run configurations
 run-dev:
+	-adb reverse tcp:8000 tcp:8000
 	flutter run --dart-define-from-file=.env.dev.json --release
 
 run-prod:

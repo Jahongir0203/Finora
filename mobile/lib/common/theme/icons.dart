@@ -59,7 +59,7 @@ abstract final class FinoraIcons {
   static const IconData card = LucideIcons.creditCard;
   static const IconData income = LucideIcons.arrowDownLeft;
   static const IconData expense = LucideIcons.arrowUpRight;
-  static const IconData savings = LucideIcons.piggyBank;
+  static const IconData savings = LucideIcons.handCoins;
   static const IconData coins = LucideIcons.coins;
   static const IconData trendUp = LucideIcons.trendingUp;
   static const IconData trendDown = LucideIcons.trendingDown;
@@ -79,7 +79,7 @@ abstract final class FinoraIcons {
   static const IconData laptop = LucideIcons.laptop;
 
   // Goals
-  static const IconData goalSavings = LucideIcons.piggyBank;
+  static const IconData goalSavings = LucideIcons.handCoins;
   static const IconData goalTravel = LucideIcons.plane;
   static const IconData goalLaptop = LucideIcons.laptop;
   static const IconData goalCar = LucideIcons.car;

@@ -26,7 +26,7 @@ abstract final class CategoryIcons {
     'arrow-down-left': LucideIcons.arrowDownLeft,
     'arrow-left-right': LucideIcons.arrowLeftRight,
     'trending-up': LucideIcons.trendingUp,
-    'piggy-bank': LucideIcons.piggyBank,
+    'piggy-bank': LucideIcons.handCoins,
     'laptop': LucideIcons.laptop,
     'heart': LucideIcons.heart,
     'shield-check': LucideIcons.shieldCheck,
